@@ -2,8 +2,9 @@
 This is Spring Boot application for Lightfeather management API. 
 
 # Running locally with maven
-mvn clean insall
-mvn springboo:run
+mvn clean install
+
+mvn spring-boot:run
 
 # Running with docker
 To help ensure consistently correct startup across multiple platforms, you may choose to use Docker to containerize your application.  Installation steps for docker can be found on their main page.
