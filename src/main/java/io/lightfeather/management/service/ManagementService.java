@@ -1,11 +1,13 @@
 package io.lightfeather.management.service;
 
+import io.lightfeather.management.model.Person;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ManagementService {
@@ -28,14 +30,14 @@ public class ManagementService {
      * @return List of supervisors / managers sorted by jurisdiction, last name, first name
      */
     public List<String> getSupervisors() {
-        List<Map<String, Object>> managers = restTemplate.getForObject(supervisorUrl, List.class);
-        List<String> supervisors = new ArrayList<>();
-        for (Map<String, Object> manager : managers) {
-            if (!manager.containsKey("jurisdiction") || !((String) manager.get("jurisdiction")).matches("^[a-zA-Z]+$")) { continue; }
-            supervisors.add(String.format("%s - %s, %s", manager.get("jurisdiction"), manager.get("lastName"), manager.get("firstName")));
-        }
-        Collections.sort(supervisors);
-        return supervisors;
+        return Arrays.stream(restTemplate.getForObject(supervisorUrl, Person[].class))
+                .filter(person -> !person.getJurisdiction().matches("[0-9]+"))
+                .sorted(Comparator.comparing(Person::getJurisdiction)
+                        .thenComparing(Person::getLastName)
+                        .thenComparing(Person::getFirstName))
+                .map(person -> person.getJurisdiction() + " - " + person.getLastName() + ", " + person.getFirstName())
+                .collect(Collectors.toList());
+
     }
 
 }
