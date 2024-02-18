@@ -9,6 +9,10 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@ToString
+/**
+ *  This is DTO to send user details for submit api
+ */
 public class UserDetails {
 
     @NotEmpty(message = "First name is required")

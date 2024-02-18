@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.List;
 
 @Service
-public class UserService {
+public class ManagementService {
 
     @Autowired
     RestTemplate restTemplate;
@@ -16,6 +16,17 @@ public class UserService {
     @Value("${supervisor.url}")
     private String supervisorUrl;
 
+
+    /**
+     *
+     * This function returns a list of supervisor :
+     *  Strings formatted “jurisdiction - lastName, firstName”
+     *  Supervisors within the endpoint response payload should be sorted in alphabetical order
+     *      first by jurisdiction, then by lastName and firstName.
+     *  Numeric jurisdictions should be excluded from the response.
+     *
+     * @return List of supervisors / managers sorted by jurisdiction, last name, first name
+     */
     public List<String> getSupervisors() {
         List<Map<String, Object>> managers = restTemplate.getForObject(supervisorUrl, List.class);
         List<String> supervisors = new ArrayList<>();

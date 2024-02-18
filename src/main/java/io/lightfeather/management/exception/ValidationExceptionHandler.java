@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -16,6 +15,13 @@ import jakarta.servlet.http.HttpServletRequest;
 @ControllerAdvice
 public class ValidationExceptionHandler {
 
+    /**
+     * This method will handle any field validation on UserDetails and return bad request response entity
+     *
+     * @param ex MethodArgumentNotValidException
+     * @param request HttpServletRequest
+     * @return Response Entity
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> notValid(MethodArgumentNotValidException ex, HttpServletRequest request) {
         List<String> errors = new ArrayList<>();

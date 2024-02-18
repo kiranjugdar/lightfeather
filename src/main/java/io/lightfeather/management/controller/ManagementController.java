@@ -1,7 +1,7 @@
 package io.lightfeather.management.controller;
 
 import io.lightfeather.management.model.UserDetails;
-import io.lightfeather.management.service.UserService;
+import io.lightfeather.management.service.ManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,15 +14,15 @@ import java.util.List;
 public class ManagementController {
 
     @Autowired
-    UserService userService;
+    ManagementService managementService;
 
     @GetMapping("/supervisors")
     public List<String> getSupervisors() {
-        return userService.getSupervisors();
+        return managementService.getSupervisors();
     }
 
     @PostMapping("/submit")
-    public void submit(@Valid @RequestBody UserDetails body) {
-        System.out.println("Submitted data: " + body.getFirstName() + ", " + body.getLastName() + ", " + body.getSupervisor());
+    public void submit(@Valid @RequestBody UserDetails userDetails) {
+        System.out.println("Submitted data: " + userDetails);
     }
 }
