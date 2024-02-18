@@ -2,6 +2,11 @@
 This is Spring Boot application for Lightfeather management API. 
 
 # Running locally with maven
+Software needed locally 
+
+    1. JDK 17 (https://jdk.java.net/archive/)
+
+    2. Maven (https://maven.apache.org/download.cgi)
 mvn clean install
 
 mvn spring-boot:run
