@@ -1,1 +1,37 @@
-# lightfeather
+# Overview
+This is Spring Boot application for Lightfeather management API. 
+
+# Running locally with maven
+mvn clean insall
+mvn springboo:run
+
+# Running with docker
+To help ensure consistently correct startup across multiple platforms, you may choose to use Docker to containerize your application.  Installation steps for docker can be found on their main page.
+https://docs.docker.com/engine/install/
+
+With Docker installed, you can build your a new image. This build needs to be run after any changes are made to the source code.
+```
+docker build -t lightfeather .
+```
+
+After the image builds successfully, run a container from that image.
+```
+docker run -p8080:8080 lightfeather -d
+```
+
+# Swagger url
+http://localhost:8080/swagger-ui/index.html#/
+...
+
+When you are done testing, stop the server and remove the container.
+```
+docker rm -f lightfeather
+```
+
+# Running with docker-compose
+docker-compose up -d
+
+# Shutting down with docker-compose
+docker-compose down
+
+
