@@ -31,8 +31,13 @@ docker rm -f lightfeather
 
 # Running with docker-compose
 docker-compose up -d
+...
 
 # Shutting down with docker-compose
 docker-compose down
+...
 
+# Postman collection
+Postman collection can be imported to test API
+src/main/resources/lightfeather-api.postman_collection.json
 

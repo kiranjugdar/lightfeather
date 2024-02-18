@@ -1,0 +1,81 @@
+{
+	"info": {
+		"_postman_id": "a85a9ef0-f5f4-44ed-bc0f-503eae95f0b0",
+		"name": "lightfeather-api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "94502"
+	},
+	"item": [
+		{
+			"name": "submit",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"firstName\" : \"John\",\n    \"lastName\" : \"Doe\",\n    \"supervisor\" : \"Sarah\",\n    \"phoneNumber\" : \"1234567891\",\n    \"email\" : \"john.doe@gmail.com\"    \n}"
+				},
+				"url": {
+					"raw": "localhost:8080/api/submit",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"submit"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "supervisors",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"firstName\" : \"John\",\n    \"lastName\" : \"Doe\",\n    \"supervisor\" : \"Sarah\",\n    \"phoneNumber\" : \"1234567891\",\n    \"email\" : \"john.doe@gmail.com\"    \n}"
+				},
+				"url": {
+					"raw": "localhost:8080/api/supervisors",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"supervisors"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
