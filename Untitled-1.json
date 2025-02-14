@@ -1,0 +1,61 @@
+{
+  "claim_id": "123456789",
+  "claim_type": "Disability",  
+  "claim_status": "In Progress",
+  "submitted_date": "2024-01-15",
+  "current_step": {
+    "id": 3,
+    "name": "Medical Review",
+    "status": "Pending"
+  },
+  "steps": [
+    {
+      "id": 1,
+      "step_group": "Incomplete Application",
+      "dates": {
+        "internet_start_date": "2024-01-01",
+        "internet_submit_date": "2024-01-03",
+        "establishment_date": "2024-01-05"
+      },
+      "status": "Completed"
+    },
+    {
+      "id": 2,
+      "step_group": "Initial Non-Medical Review",
+      "dates": {
+        "receipt_date": "2024-01-07",
+        "dds_transfer_date": "2024-01-10",
+        "ho_transfer_date": "2024-01-12"
+      },
+      "status": "Completed"
+    },
+    {
+      "id": 3,
+      "step_group": "Medical Review",
+      "dates": {
+        "hearing_scheduled_date": "2024-02-01",
+        "hearing_postponed_date": null,
+        "hearing_held_date": null
+      },
+      "status": "Pending"
+    },
+    {
+      "id": 4,
+      "step_group": "Final Review",
+      "dates": {
+        "appeals_council_transfer_date": null,
+        "disability_case_closure_date": null,
+        "processing_center_transfer_date": null
+      },
+      "status": "Not Started"
+    },
+    {
+      "id": 5,
+      "step_group": "Finished Processing",
+      "dates": {
+        "final_adjudication_date": null
+      },
+      "status": "Not Started"
+    }
+  ]
+}
