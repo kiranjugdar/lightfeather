@@ -1,0 +1,164 @@
+package com.example.demo.controller;
+
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import com.example.demo.service.OTPService;
+import com.example.demo.dto.OtpStatusDTO;
+import com.example.demo.dto.OneTimePasscodeObjectForCollectingUserInput;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+@WebMvcTest(UpdateCertificateVerificationController.class)
+@ExtendWith(MockitoExtension.class)
+class UpdateCertificateVerificationControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private OTPService otpService;
+
+    /**
+     * Test GET request for /updatecertificateverification/updatecertificateverificationpage
+     * Expect the view "UPDATECERTIFICATEVERIFICATION" to be returned.
+     * If personaId is null, check that the model attribute is set accordingly.
+     */
+    @Test
+    @DisplayName("GET: /updatecertificateverification/updatecertificateverificationpage - PersonaId null")
+    void testGetUpdateCertificateVerificationPage_PersonaIdNull() throws Exception {
+        // Simply perform the GET request
+        mockMvc.perform(get("/updatecertificateverification/updatecertificateverificationpage"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("UPDATECERTIFICATEVERIFICATION"))
+               // Depending on your code, you may want to check the model attribute for personaId
+               .andExpect(model().attribute("personaId", org.hamcrest.Matchers.nullValue()));
+    }
+
+    /**
+     * Test POST request for /updatecertificateverification/updatecertificateverification
+     * Scenario: OTP is valid (success).
+     * Expect a redirect to "/updatecertificate".
+     */
+    @Test
+    @DisplayName("POST: /updatecertificateverification/updatecertificateverification - OTP valid")
+    void testSubmitUpdateCertificateVerification_Success() throws Exception {
+        // Mock the OTPService response: success = true, expired = false
+        OtpStatusDTO successStatus = new OtpStatusDTO(true, false, "OTP validated successfully");
+        when(otpService.validateOTP(anyInt(), anyString())).thenReturn(successStatus);
+
+        mockMvc.perform(post("/updatecertificateverification/updatecertificateverification")
+                .param("submit", "submit")
+                .param("otp", "123456")
+                // You may need to adapt how personaId is sent, depending on your form binding
+                .param("personaId", "100"))
+               .andExpect(status().is3xxRedirection())
+               .andExpect(redirectedUrl("/updatecertificate"));
+    }
+
+    /**
+     * Test POST request for /updatecertificateverification/updatecertificateverification
+     * Scenario: OTP is expired.
+     * Expect a redirect to "/updatecertificate" with a message about expiration.
+     */
+    @Test
+    @DisplayName("POST: /updatecertificateverification/updatecertificateverification - OTP expired")
+    void testSubmitUpdateCertificateVerification_Expired() throws Exception {
+        // Mock the OTPService response: success = false, expired = true
+        OtpStatusDTO expiredStatus = new OtpStatusDTO(false, true, "OTP expired");
+        when(otpService.validateOTP(anyInt(), anyString())).thenReturn(expiredStatus);
+
+        mockMvc.perform(post("/updatecertificateverification/updatecertificateverification")
+                .param("submit", "submit")
+                .param("otp", "999999")
+                .param("personaId", "200"))
+               .andExpect(status().is3xxRedirection())
+               .andExpect(redirectedUrl("/updatecertificate"));
+    }
+
+    /**
+     * Test POST request for /updatecertificateverification/updatecertificateverification
+     * Scenario: OTP is invalid.
+     * Expect the view "UPDATECERTIFICATEVERIFICATION" with an "incorrectCode" message in the model.
+     */
+    @Test
+    @DisplayName("POST: /updatecertificateverification/updatecertificateverification - OTP invalid")
+    void testSubmitUpdateCertificateVerification_Invalid() throws Exception {
+        // Mock the OTPService response: success = false, expired = false
+        OtpStatusDTO invalidStatus = new OtpStatusDTO(false, false, "Invalid OTP");
+        when(otpService.validateOTP(anyInt(), anyString())).thenReturn(invalidStatus);
+
+        mockMvc.perform(post("/updatecertificateverification/updatecertificateverification")
+                .param("submit", "submit")
+                .param("otp", "abcdef")
+                .param("personaId", "300"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("UPDATECERTIFICATEVERIFICATION"))
+               .andExpect(model().attributeExists("incorrectCode"))
+               .andExpect(model().attribute("incorrectCode", "Incorrect code"));
+    }
+
+    /**
+     * Test POST request for /updatecertificateverification/updatecertificateverification
+     * Scenario: personaId is null. Expect the controller to show an error message in the same view.
+     */
+    @Test
+    @DisplayName("POST: /updatecertificateverification/updatecertificateverification - PersonaId null")
+    void testSubmitUpdateCertificateVerification_PersonaIdNull() throws Exception {
+        mockMvc.perform(post("/updatecertificateverification/updatecertificateverification")
+                .param("submit", "submit")
+                // Intentionally omitting personaId
+                .param("otp", "123456"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("UPDATECERTIFICATEVERIFICATION"))
+               .andExpect(model().attributeExists("servererror"))
+               .andExpect(model().attribute("servererror", "Something went wrong"));
+    }
+
+    /**
+     * Test POST request for /updatecertificateverification/updatecertificateverification
+     * with the "resend" param. Scenario: personaId is not null. 
+     * Expect the "OTP sent" message in the model and same view.
+     */
+    @Test
+    @DisplayName("POST: /updatecertificateverification/updatecertificateverification?resend - success")
+    void testResendUpdateCertificateVerification_Success() throws Exception {
+        // Mock generation call
+        Mockito.doNothing().when(otpService).generateOTPAndExpiry(anyInt());
+
+        mockMvc.perform(post("/updatecertificateverification/updatecertificateverification")
+                .param("resend", "resend")
+                .param("personaId", "400"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("UPDATECERTIFICATEVERIFICATION"))
+               .andExpect(model().attribute("statusMessage", "OTP sent"));
+    }
+
+    /**
+     * Test POST request for /updatecertificateverification/updatecertificateverification
+     * with the "resend" param. Scenario: personaId is null.
+     * Expect an error message in the model and the same view.
+     */
+    @Test
+    @DisplayName("POST: /updatecertificateverification/updatecertificateverification?resend - personaId null")
+    void testResendUpdateCertificateVerification_PersonaIdNull() throws Exception {
+        mockMvc.perform(post("/updatecertificateverification/updatecertificateverification")
+                .param("resend", "resend"))
+               .andExpect(status().isOk())
+               .andExpect(view().name("UPDATECERTIFICATEVERIFICATION"))
+               .andExpect(model().attributeExists("servererror"))
+               .andExpect(model().attribute("servererror", "Something went wrong"));
+    }
+}
