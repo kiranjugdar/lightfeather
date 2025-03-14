@@ -1,0 +1,64 @@
+import java.io.*;
+import java.util.*;
+
+public class TemplateProcessor {
+    private static final String PROPERTIES_FILE = "templates.properties";
+    // Cache all templates once at initialization.
+    private static final Map<String, String> templateCache = new HashMap<>();
+
+    // Static block to load properties once.
+    static {
+        try (InputStream input = TemplateProcessor.class.getClassLoader().getResourceAsStream(PROPERTIES_FILE)) {
+            if (input == null) {
+                throw new FileNotFoundException("Properties file '" + PROPERTIES_FILE + "' not found in the classpath.");
+            }
+            Properties props = new Properties();
+            props.load(input);
+            // Cache each property (template) by its key.
+            for (String key : props.stringPropertyNames()) {
+                templateCache.put(key, props.getProperty(key));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Consider logging or handling this error appropriately for your use case.
+        }
+    }
+
+    /**
+     * Processes a template by replacing placeholders with provided values.
+     *
+     * @param templateId   the key of the template in the properties file
+     * @param replacements a map where each key corresponds to a placeholder (without angle brackets)
+     *                     and the value is the replacement text.
+     * @return the processed template with placeholders replaced.
+     * @throws IllegalArgumentException if the templateId is not found.
+     */
+    public static String processTemplate(String templateId, Map<String, Object> replacements) {
+        // Retrieve the template from the cache.
+        String template = templateCache.get(templateId);
+        if (template == null) {
+            throw new IllegalArgumentException("No template found for id: " + templateId);
+        }
+
+        // Replace each placeholder (e.g., "<Claim Type>") with its corresponding value.
+        for (Map.Entry<String, Object> entry : replacements.entrySet()) {
+            String placeholder = "<" + entry.getKey() + ">";
+            template = template.replace(placeholder, entry.getValue().toString());
+        }
+        return template;
+    }
+
+    // Example usage.
+    public static void main(String[] args) {
+        Map<String, Object> replacements = new HashMap<>();
+        replacements.put("Claim Type", "Auto Insurance");
+        replacements.put("Internet start date", "2023-03-01");
+
+        try {
+            String result = processTemplate("templateId", replacements);
+            System.out.println(result);
+        } catch (IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+}
