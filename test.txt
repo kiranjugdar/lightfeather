@@ -1,64 +1,114 @@
-import java.io.*;
-import java.util.*;
 
-public class TemplateProcessor {
-    private static final String PROPERTIES_FILE = "templates.properties";
-    // Cache all templates once at initialization.
-    private static final Map<String, String> templateCache = new HashMap<>();
+--------- pom.xml
+<dependencies>
+  <!-- Other dependencies -->
 
-    // Static block to load properties once.
-    static {
-        try (InputStream input = TemplateProcessor.class.getClassLoader().getResourceAsStream(PROPERTIES_FILE)) {
-            if (input == null) {
-                throw new FileNotFoundException("Properties file '" + PROPERTIES_FILE + "' not found in the classpath.");
-            }
-            Properties props = new Properties();
-            props.load(input);
-            // Cache each property (template) by its key.
-            for (String key : props.stringPropertyNames()) {
-                templateCache.put(key, props.getProperty(key));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            // Consider logging or handling this error appropriately for your use case.
-        }
+  <!-- Spring Session JDBC dependency -->
+  <dependency>
+    <groupId>org.springframework.session</groupId>
+    <artifactId>spring-session-jdbc</artifactId>
+  </dependency>
+
+  <!-- PostgreSQL Driver dependency -->
+  <dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <scope>runtime</scope>
+  </dependency>
+</dependencies>
+
+---------  application.properties
+
+# Use JDBC-based session store
+spring.session.store-type=jdbc
+# Initialize the Spring Session schema automatically. (You can set to 'never' if you want to run the script manually)
+spring.session.jdbc.initialize-schema=always
+
+# PostgreSQL DataSource configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/your_db_name
+spring.datasource.username=your_db_username
+spring.datasource.password=your_db_password
+
+# Optional: specify the platform for Spring Session to pick correct DDL scripts
+spring.session.jdbc.platform=postgres
+
+------- 
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
+import java.io.IOException;
+
+@Component
+public class SamlAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, 
+                                        HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
+        // Extract the SAML principal.
+        // Depending on your SAML setup, you may need to cast to your SAML-specific type.
+        Object samlPrincipal = authentication.getPrincipal();
+
+        // Store the SAML principal or specific attributes in the session.
+        // Adjust the logic if you need to retrieve certain attributes from your SAML object.
+        request.getSession().setAttribute("principal_user", samlPrincipal);
+
+        // Proceed with the default redirect or further custom logic
+        response.sendRedirect("/");
+    }
+}
+
+---------------
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    private final SamlAuthenticationSuccessHandler samlSuccessHandler;
+
+    public SecurityConfig(SamlAuthenticationSuccessHandler samlSuccessHandler) {
+        this.samlSuccessHandler = samlSuccessHandler;
     }
 
-    /**
-     * Processes a template by replacing placeholders with provided values.
-     *
-     * @param templateId   the key of the template in the properties file
-     * @param replacements a map where each key corresponds to a placeholder (without angle brackets)
-     *                     and the value is the replacement text.
-     * @return the processed template with placeholders replaced.
-     * @throws IllegalArgumentException if the templateId is not found.
-     */
-    public static String processTemplate(String templateId, Map<String, Object> replacements) {
-        // Retrieve the template from the cache.
-        String template = templateCache.get(templateId);
-        if (template == null) {
-            throw new IllegalArgumentException("No template found for id: " + templateId);
-        }
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            // Configure authorization rules
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().authenticated()
+            )
+            // Configure SAML login with custom success handling
+            .saml2Login(saml2 -> saml2
+                .successHandler(samlSuccessHandler)
+            )
+            // Configure session management for single session constraint
+            .sessionManagement(session -> session
+                .maximumSessions(1)
+                // Prevent new logins if an active session exists:
+                .maxSessionsPreventsLogin(true)
+                // Register the session registry to keep track of sessions
+                .sessionRegistry(sessionRegistry())
+            );
 
-        // Replace each placeholder (e.g., "<Claim Type>") with its corresponding value.
-        for (Map.Entry<String, Object> entry : replacements.entrySet()) {
-            String placeholder = "<" + entry.getKey() + ">";
-            template = template.replace(placeholder, entry.getValue().toString());
-        }
-        return template;
+        return http.build();
     }
 
-    // Example usage.
-    public static void main(String[] args) {
-        Map<String, Object> replacements = new HashMap<>();
-        replacements.put("Claim Type", "Auto Insurance");
-        replacements.put("Internet start date", "2023-03-01");
-
-        try {
-            String result = processTemplate("templateId", replacements);
-            System.out.println(result);
-        } catch (IllegalArgumentException e) {
-            System.err.println(e.getMessage());
-        }
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
     }
 }
