@@ -1,114 +1,95 @@
-
---------- pom.xml
-<dependencies>
-  <!-- Other dependencies -->
-
-  <!-- Spring Session JDBC dependency -->
-  <dependency>
-    <groupId>org.springframework.session</groupId>
-    <artifactId>spring-session-jdbc</artifactId>
-  </dependency>
-
-  <!-- PostgreSQL Driver dependency -->
-  <dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <scope>runtime</scope>
-  </dependency>
-</dependencies>
-
----------  application.properties
-
-# Use JDBC-based session store
-spring.session.store-type=jdbc
-# Initialize the Spring Session schema automatically. (You can set to 'never' if you want to run the script manually)
-spring.session.jdbc.initialize-schema=always
-
-# PostgreSQL DataSource configuration
-spring.datasource.url=jdbc:postgresql://localhost:5432/your_db_name
-spring.datasource.username=your_db_username
-spring.datasource.password=your_db_password
-
-# Optional: specify the platform for Spring Session to pick correct DDL scripts
-spring.session.jdbc.platform=postgres
-
-------- 
-
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.core.session.SessionInformation;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
-import java.io.IOException;
 
 @Component
-public class SamlAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+public class SessionCleanupLogoutHandler implements LogoutHandler {
+
+    private final SessionRegistry sessionRegistry;
+
+    public SessionCleanupLogoutHandler(SessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
+    }
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, 
-                                        HttpServletResponse response,
-                                        Authentication authentication) throws IOException, ServletException {
-        // Extract the SAML principal.
-        // Depending on your SAML setup, you may need to cast to your SAML-specific type.
-        Object samlPrincipal = authentication.getPrincipal();
-
-        // Store the SAML principal or specific attributes in the session.
-        // Adjust the logic if you need to retrieve certain attributes from your SAML object.
-        request.getSession().setAttribute("principal_user", samlPrincipal);
-
-        // Proceed with the default redirect or further custom logic
-        response.sendRedirect("/");
+    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+        // Retrieve current session.
+        if (request.getSession(false) != null) {
+            String sessionId = request.getSession().getId();
+            // Remove the session from the registry.
+            SessionInformation sessionInformation = sessionRegistry.getSessionInformation(sessionId);
+            if (sessionInformation != null) {
+                sessionInformation.expireNow();
+                sessionRegistry.removeSessionInformation(sessionId);
+            }
+            // Invalidate the HTTP session.
+            request.getSession().invalidate();
+        }
     }
 }
 
----------------
+
+-------
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.Customizer;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableWebSecurity
 public class SecurityConfig {
-
-    private final SamlAuthenticationSuccessHandler samlSuccessHandler;
-
-    public SecurityConfig(SamlAuthenticationSuccessHandler samlSuccessHandler) {
-        this.samlSuccessHandler = samlSuccessHandler;
-    }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            // Configure authorization rules
-            .authorizeHttpRequests(auth -> auth
-                .anyRequest().authenticated()
-            )
-            // Configure SAML login with custom success handling
-            .saml2Login(saml2 -> saml2
-                .successHandler(samlSuccessHandler)
-            )
-            // Configure session management for single session constraint
-            .sessionManagement(session -> session
-                .maximumSessions(1)
-                // Prevent new logins if an active session exists:
-                .maxSessionsPreventsLogin(true)
-                // Register the session registry to keep track of sessions
-                .sessionRegistry(sessionRegistry())
-            );
-
-        return http.build();
-    }
 
     @Bean
     public SessionRegistry sessionRegistry() {
         return new SessionRegistryImpl();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain samlSecurityChain(HttpSecurity http, SessionCleanupLogoutHandler logoutHandler) throws Exception {
+        http
+            .securityMatcher("/**")
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/public/**", "/landing", "/proceed", "/actuator/health",
+                    "/favicon.ico", "/css/**", "/js/**", "/images/**", "/webjars/**",
+                    "/login", "/saml2/**", "/login/saml2/**"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            .saml2Login(saml -> saml
+                .successHandler(samlSuccessHandler())  // your custom SAML success handler
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?logout")
+                .logoutHandlers(logoutHandler)   // add your custom logout handler here
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+            )
+            .sessionManagement(session -> session
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(true)
+                .sessionRegistry(sessionRegistry())
+            );
+
+        // Optionally add your custom session check filter here.
+        // http.addFilterAfter(new ConcurrentSessionBlockingFilter(sessionRegistry()),
+        //         SecurityContextPersistenceFilter.class);
+
+        return http.build();
+    }
+
+    // Define your custom SAML success handler as needed.
+    @Bean
+    public SamlAuthenticationSuccessHandler samlSuccessHandler() {
+        return new SamlAuthenticationSuccessHandler();
     }
 }
