@@ -1,39 +1,59 @@
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.session.SessionInformation;
-import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.session.SessionAuthenticationException;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
+import java.io.IOException;
 
 @Component
-public class SessionCleanupLogoutHandler implements LogoutHandler {
-
-    private final SessionRegistry sessionRegistry;
-
-    public SessionCleanupLogoutHandler(SessionRegistry sessionRegistry) {
-        this.sessionRegistry = sessionRegistry;
-    }
+public class CustomAuthenticationFailureHandler implements AuthenticationFailureHandler {
 
     @Override
-    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        // Retrieve current session.
-        if (request.getSession(false) != null) {
-            String sessionId = request.getSession().getId();
-            // Remove the session from the registry.
-            SessionInformation sessionInformation = sessionRegistry.getSessionInformation(sessionId);
-            if (sessionInformation != null) {
-                sessionInformation.expireNow();
-                sessionRegistry.removeSessionInformation(sessionId);
-            }
-            // Invalidate the HTTP session.
-            request.getSession().invalidate();
+    public void onAuthenticationFailure(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        AuthenticationException exception) throws IOException, ServletException {
+        String errorMessage = "Invalid credentials. Please try again.";
+
+        if (exception instanceof SessionAuthenticationException) {
+            errorMessage = "Error: Multiple logins detected. Maximum number of sessions reached. " +
+                           "Click here to manage or clear sessions: " +
+                           "<a href='/sessionmanager.html'>Session Manager</a>";
         }
+
+        // Option 1: Store the custom error message as a session attribute.
+        request.getSession().setAttribute("loginError", errorMessage);
+
+        // Option 2: Alternatively, you can pass the message as a query parameter to the login page.
+        // String encodedMessage = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
+        // response.sendRedirect("/login?error=" + encodedMessage);
+        
+        // Redirect to the login page with the error flag set.
+        response.sendRedirect("/login?error");
     }
 }
 
+------
 
--------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login Page</h1>
+    <!-- Display error message if exists. Use th:utext to allow HTML rendering -->
+    <div th:if="${session.loginError}" th:utext="${session.loginError}"></div>
+    <form action="/login" method="post">
+        <!-- Your login fields go here -->
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>
+
+-----------
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,7 +73,7 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain samlSecurityChain(HttpSecurity http, SessionCleanupLogoutHandler logoutHandler) throws Exception {
+    public SecurityFilterChain samlSecurityChain(HttpSecurity http, CustomAuthenticationFailureHandler failureHandler) throws Exception {
         http
             .securityMatcher("/**")
             .authorizeHttpRequests(auth -> auth
@@ -66,11 +86,11 @@ public class SecurityConfig {
             )
             .saml2Login(saml -> saml
                 .successHandler(samlSuccessHandler())  // your custom SAML success handler
+                .failureHandler(failureHandler)
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
-                .logoutHandlers(logoutHandler)   // add your custom logout handler here
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
             )
@@ -79,10 +99,6 @@ public class SecurityConfig {
                 .maxSessionsPreventsLogin(true)
                 .sessionRegistry(sessionRegistry())
             );
-
-        // Optionally add your custom session check filter here.
-        // http.addFilterAfter(new ConcurrentSessionBlockingFilter(sessionRegistry()),
-        //         SecurityContextPersistenceFilter.class);
 
         return http.build();
     }
