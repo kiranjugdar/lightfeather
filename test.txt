@@ -1,41 +1,33 @@
-private ClaimStatusData buildResponseAppData(List<CommonContent> claimsList) {
-    ClaimStatusData claimStatusUpdate = new ClaimStatusData();
-    
-    // Handle empty or null list upfront
-    if (claimsList == null || claimsList.isEmpty()) {
-        claimStatusUpdate.setStatus(AppDataStatus.NO_CLAIMS_FOUND_0400);
-        return claimStatusUpdate;
-    }
+public List<ClaimStatusDetails> sortClaimStatusDetails(List<ClaimStatusDetails> claimStatusDetailsList) {
+    return claimStatusDetailsList.stream()
+        .sorted((detail1, detail2) -> {
+            String code1 = detail1.getTitleCode();
+            String code2 = detail2.getTitleCode();
 
-    // Set the status to indicate that claims were found
-    claimStatusUpdate.setStatus(AppDataStatus.CLAIMS_FOUND_0400);
+            // Handle potential null values: null is considered 'greater' to sort them last.
+            if (code1 == null && code2 == null) return 0;
+            if (code1 == null) return 1;
+            if (code2 == null) return -1;
 
-    // Use parallelStream() to process in parallel
-    List<ClaimStatus> claimsStatusList = claimsList.parallelStream()
-        .map(claim -> {
-            // Log inside the parallel operation 
-            logger.info("Number of Claims: " + claimsList.size());
-            
-            // Create and populate the ClaimStatus object
-            ClaimStatus claimsStatus = new ClaimStatus();
-            claimsStatus.setPolicy(claim.getPolicyId());
-            claimsStatus.setFilmName(
-                officeLookupService
-                    .getOfficeLookupByTypeAndCode(OfficeLookUpType.LDF, claim.getCode())
-                    .getOfficeName()
-            );
-            claimsStatus.setLdfClaimNumber(claim.getClaimNumber());
-            claimsStatus.setLdfClaimStatus(claim.getClaimStatus());
-            claimsStatus.setClaimCaseNumber(claim.getCaseNumber());
-            claimsStatus.setClaimType(claim.getType());
-            claimsStatus.setStatus(AppDataStatus.CLAIMSTATUS_SUCCESSFUL);
+            // Get rank for each non-null titleCode.
+            int rank1 = getRankForTitleCode(code1);
+            int rank2 = getRankForTitleCode(code2);
 
-            return claimsStatus;
+            return Integer.compare(rank1, rank2);
         })
         .collect(Collectors.toList());
+}
 
-    // Set the processed list into the response object
-    claimStatusUpdate.setClaimsStatus(claimsStatusList);
-
-    return claimStatusUpdate;
+// Helper method to define custom ordering based on titleCode.
+private int getRankForTitleCode(String titleCode) {
+    if ("T2".equals(titleCode)) {
+        return 1;
+    } else if ("T16".equals(titleCode)) {
+        return 2;
+    } else if ("T18".equals(titleCode)) {
+        return 3;
+    } else {
+        // For any title code not matching, assign the highest value so they appear last.
+        return Integer.MAX_VALUE;
+    }
 }
