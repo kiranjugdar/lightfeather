@@ -1,33 +1,21 @@
-public List<ClaimStatusDetails> sortClaimStatusDetails(List<ClaimStatusDetails> claimStatusDetailsList) {
-    return claimStatusDetailsList.stream()
-        .sorted((detail1, detail2) -> {
-            String code1 = detail1.getTitleCode();
-            String code2 = detail2.getTitleCode();
+private void printFillable(ClaimStatusData claimStatusDataResponse) {
+    // Safely handle possible nulls using Optional.
+    Optional.ofNullable(claimStatusDataResponse)
+        .map(ClaimStatusData::getClaimStatusDetailsList) // get the list
+        .ifPresent(claimStatusDetailsList -> 
+            // Stream over the list
+            claimStatusDetailsList.stream().forEach(claimStatusDetails -> {
+                // Print the templateId
+                String templateId = claimStatusDetails.getTemplateId();
+                logger.debug("Fillable values for template ID : {}", templateId);
 
-            // Handle potential null values: null is considered 'greater' to sort them last.
-            if (code1 == null && code2 == null) return 0;
-            if (code1 == null) return 1;
-            if (code2 == null) return -1;
-
-            // Get rank for each non-null titleCode.
-            int rank1 = getRankForTitleCode(code1);
-            int rank2 = getRankForTitleCode(code2);
-
-            return Integer.compare(rank1, rank2);
-        })
-        .collect(Collectors.toList());
-}
-
-// Helper method to define custom ordering based on titleCode.
-private int getRankForTitleCode(String titleCode) {
-    if ("T2".equals(titleCode)) {
-        return 1;
-    } else if ("T16".equals(titleCode)) {
-        return 2;
-    } else if ("T18".equals(titleCode)) {
-        return 3;
-    } else {
-        // For any title code not matching, assign the highest value so they appear last.
-        return Integer.MAX_VALUE;
-    }
+                // Iterate over the map entries
+                Map<String, Object> items = claimStatusDetails.getTemplateMap();
+                if (items != null) {
+                    items.forEach((key, value) -> 
+                        logger.debug("Key: {}, Value: {}", key, value)
+                    );
+                }
+            })
+        );
 }
