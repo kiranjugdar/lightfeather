@@ -1,43 +1,55 @@
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.security.core.session.SessionInformation;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME;
 
-public class CustomPrincipalNameResolver implements FindByIndexNameSessionRepository.PrincipalNameResolver {
+@Service
+public class SessionClearanceService {
 
-    @Override
-    public String resolvePrincipalName(Session session) {
-        Object serialNum = session.getAttribute("serial_num");
-        if (serialNum != null) {
-            return serialNum.toString();
+    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
+    private final SessionRegistry sessionRegistry;
+
+    public SessionClearanceService(FindByIndexNameSessionRepository<? extends Session> sessionRepository,
+                                   SessionRegistry sessionRegistry) {
+        this.sessionRepository = sessionRepository;
+        this.sessionRegistry = sessionRegistry;
+    }
+
+    /**
+     * Clears all sessions whose principal_name (serial number) matches the given serialNumber.
+     * This method does the following:
+     *  1. Retrieves sessions by the principalName (using the built-in index).
+     *  2. Deletes each session found from the session repository.
+     *  3. Expires and removes the corresponding sessions from the SessionRegistry.
+     *
+     * @param serialNumber the serial number used as the principal name.
+     */
+    @Transactional
+    public void clearSessionsForSerialNumber(String serialNumber) {
+        // Step 1: Retrieve all sessions where the principal_name equals the provided serial number.
+        Map<String, ? extends Session> sessions = 
+                sessionRepository.findByIndexNameAndIndexValue(PRINCIPAL_NAME_INDEX_NAME, serialNumber);
+        
+        // Step 2: Delete each session from the repository.
+        for (String sessionId : sessions.keySet()) {
+            sessionRepository.deleteById(sessionId);
         }
-        // Fallback behavior (optional): you could extract from SPRING_SECURITY_CONTEXT or return null
-        return null;
+        
+        // Step 3: Expire and remove matching sessions from the SessionRegistry.
+        for (Object principal : sessionRegistry.getAllPrincipals()) {
+            List<SessionInformation> sessionInfos = sessionRegistry.getAllSessions(principal, false);
+            for (SessionInformation sessionInfo : sessionInfos) {
+                if (sessions.containsKey(sessionInfo.getSessionId())) {
+                    sessionInfo.expireNow();
+                    sessionRegistry.removeSessionInformation(sessionInfo.getSessionId());
+                }
+            }
+        }
     }
 }
-
---------
-import javax.sql.DataSource;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.session.FindByIndexNameSessionRepository;
-import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
-import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
-import org.springframework.session.json.JacksonJsonSerializer;
-
-@Configuration
-@EnableJdbcHttpSession
-public class SessionConfig {
-
-    @Bean
-    public JdbcIndexedSessionRepository sessionRepository(DataSource dataSource) {
-        JdbcIndexedSessionRepository repository = new JdbcIndexedSessionRepository(dataSource);
-        
-        // Configure the serializer as needed (here we use JacksonJsonSerializer)
-        repository.setDefaultSerializer(new JacksonJsonSerializer());
-        
-        // Set the custom principal name resolver so that principal_name stores serial_num
-        repository.setPrincipalNameResolver(new CustomPrincipalNameResolver());
-        
-        return repository;
-    }
-}
------------
