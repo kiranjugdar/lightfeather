@@ -1,151 +1,26 @@
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
+import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
+import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessionConfiguration;
+import org.springframework.session.serializer.Jackson2JsonSerializer;
+import javax.sql.DataSource;
 
-@Entity
-@Table(name = "spring_session_attributes")
-public class SpringSessionAttribute {
+@Configuration
+@EnableJdbcHttpSession
+public class SessionConfig {
 
-    // In many cases the composite key is (session_primary_id, attribute_name).
-    // For our purposes we only use the fields in the query.
-    
-    @Id
-    @Column(name = "session_primary_id")
-    private String sessionPrimaryId;
-
-    @Column(name = "attribute_name")
-    private String attributeName;
-
-    @Column(name = "attribute_bytes")
-    private byte[] attributeBytes;
-
-    // Getters and setters
-
-    public String getSessionPrimaryId() {
-        return sessionPrimaryId;
-    }
-
-    public void setSessionPrimaryId(String sessionPrimaryId) {
-        this.sessionPrimaryId = sessionPrimaryId;
-    }
-
-    public String getAttributeName() {
-        return attributeName;
-    }
-
-    public void setAttributeName(String attributeName) {
-        this.attributeName = attributeName;
-    }
-
-    public byte[] getAttributeBytes() {
-        return attributeBytes;
-    }
-
-    public void setAttributeBytes(byte[] attributeBytes) {
-        this.attributeBytes = attributeBytes;
+    @Bean
+    public JdbcIndexedSessionRepository sessionRepository(DataSource dataSource, ObjectMapper objectMapper) {
+        JdbcIndexedSessionRepository sessionRepository = new JdbcIndexedSessionRepository(dataSource);
+        
+        // Use Jackson2JsonSerializer for the default serializer.
+        Jackson2JsonSerializer<Object> serializer = new Jackson2JsonSerializer<>(Object.class);
+        serializer.setObjectMapper(objectMapper);
+        sessionRepository.setDefaultSerializer(serializer);
+        
+        // (Optional) Configure other settings as needed.
+        return sessionRepository;
     }
 }
-
--------
-
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
-public interface SpringSessionAttributesRepository extends JpaRepository<SpringSessionAttribute, String> {
-
-    @Query(
-      value = "SELECT DISTINCT session_primary_id FROM spring_session_attributes " +
-              "WHERE attribute_name = 'serial_num' " +
-              "AND CONVERT(attribute_bytes USING utf8) = :serialNum", 
-      nativeQuery = true)
-    List<String> findSessionIdsBySerialNum(@Param("serialNum") String serialNum);
-}
-
-
-
----------
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.session.SessionInformation;
-import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.session.FindByIndexNameSessionRepository;
-import org.springframework.session.Session;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-public class SessionClearanceService {
-
-    private final PersonaRepository personaRepository;
-    private final SpringSessionAttributesRepository sessionAttributesRepository;
-    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
-    private final SessionRegistry sessionRegistry;
-
-    @Autowired
-    public SessionClearanceService(PersonaRepository personaRepository,
-                                   SpringSessionAttributesRepository sessionAttributesRepository,
-                                   FindByIndexNameSessionRepository<? extends Session> sessionRepository,
-                                   SessionRegistry sessionRegistry) {
-        this.personaRepository = personaRepository;
-        this.sessionAttributesRepository = sessionAttributesRepository;
-        this.sessionRepository = sessionRepository;
-        this.sessionRegistry = sessionRegistry;
-    }
-
-    /**
-     * Clears sessions based on the provided ssnDobHash.
-     * <p>
-     * The process is:
-     * <ol>
-     *   <li>Retrieve all Personas having the given ssnDobHash.</li>
-     *   <li>For each Persona, use its serial_num (from the Personas table) to query the 
-     *       spring_session_attributes table for session_primary_id entries. The query
-     *       uses attribute_name = 'serial_num' and the serial number as the value (via conversion).</li>
-     *   <li>Delete each of the matching sessions via the Spring Session repository.</li>
-     *   <li>Expire and remove the matching sessions from the SessionRegistry.</li>
-     * </ol>
-     *
-     * @param ssnDobHash the SSN/DOB hash used to find user Personas.
-     */
-    @Transactional
-    public void clearSessionsBySsnDobHash(String ssnDobHash) {
-        // Step 1: Retrieve all Personas with the given ssnDobHash.
-        List<Personas> personas = personaRepository.findAllBySsnDobHash(ssnDobHash);
-        if (personas.isEmpty()) {
-            throw new IllegalArgumentException("No personas found for the provided ssnDobHash.");
-        }
-
-        // Step 2: Use the serial number from each Persona to collect the session IDs from spring_session_attributes.
-        Set<String> sessionIds = new HashSet<>();
-        for (Personas persona : personas) {
-            String serialNum = persona.getSerialNum();
-            if (serialNum != null && !serialNum.isEmpty()) {
-                List<String> foundSessionIds = sessionAttributesRepository.findSessionIdsBySerialNum(serialNum);
-                sessionIds.addAll(foundSessionIds);
-            }
-        }
-
-        // Step 3: Delete the sessions from the Spring Session repository.
-        sessionIds.forEach(sessionRepository::deleteById);
-
-        // Step 4: Expire and remove sessions from the SessionRegistry.
-        for (Object principal : sessionRegistry.getAllPrincipals()) {
-            List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
-            sessions.stream()
-                .filter(sessionInfo -> sessionIds.contains(sessionInfo.getSessionId()))
-                .forEach(sessionInfo -> {
-                    sessionInfo.expireNow();
-                    sessionRegistry.removeSessionInformation(sessionInfo.getSessionId());
-                });
-        }
-    }
-}
-
-
