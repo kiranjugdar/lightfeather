@@ -1,21 +1,95 @@
-private void printFillable(ClaimStatusData claimStatusDataResponse) {
-    // Safely handle possible nulls using Optional.
-    Optional.ofNullable(claimStatusDataResponse)
-        .map(ClaimStatusData::getClaimStatusDetailsList) // get the list
-        .ifPresent(claimStatusDetailsList -> 
-            // Stream over the list
-            claimStatusDetailsList.stream().forEach(claimStatusDetails -> {
-                // Print the templateId
-                String templateId = claimStatusDetails.getTemplateId();
-                logger.debug("Fillable values for template ID : {}", templateId);
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-                // Iterate over the map entries
-                Map<String, Object> items = claimStatusDetails.getTemplateMap();
-                if (items != null) {
-                    items.forEach((key, value) -> 
-                        logger.debug("Key: {}, Value: {}", key, value)
-                    );
-                }
-            })
-        );
+public interface PersonaRepository extends JpaRepository<Personas, Integer> {
+    // Returns all personas that have the given SSN/DOB hash.
+    List<Personas> findAllBySsnDobHash(String ssnDobHash);
+
+    // (Optional) Other custom finder methods.
+}
+
+public interface CertificateRepository extends JpaRepository<Certificates, Long> {
+    // For certificate lookups if needed.
+    Optional<Certificates> findByIssuerCnAndSerialNum(String issuerCn, String serialNum);
+}
+
+----------
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.session.SessionInformation;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class SessionClearanceService {
+
+    private final PersonaRepository personaRepository;
+    private final CertificateRepository certificateRepository;
+    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
+    private final SessionRegistry sessionRegistry;
+
+    @Autowired
+    public SessionClearanceService(PersonaRepository personaRepository,
+                                   CertificateRepository certificateRepository,
+                                   FindByIndexNameSessionRepository<? extends Session> sessionRepository,
+                                   SessionRegistry sessionRegistry) {
+        this.personaRepository = personaRepository;
+        this.certificateRepository = certificateRepository;
+        this.sessionRepository = sessionRepository;
+        this.sessionRegistry = sessionRegistry;
+    }
+
+    /**
+     * Clears sessions based on the provided ssnDobHash.
+     * <p>
+     * Steps:
+     * <ol>
+     *   <li>Retrieve all Personas by the given ssnDobHash.</li>
+     *   <li>Collect the session IDs (assumed to be stored in the 'uuid' field).</li>
+     *   <li>Delete each session from the Spring Session repository.</li>
+     *   <li>Expire matching sessions in the SessionRegistry.</li>
+     *   <li>Remove the expired sessions from the SessionRegistry.</li>
+     * </ol>
+     * This ensures that any lingering session data is cleared so that the user can log in again.
+     *
+     * @param ssnDobHash the SSN/DOB hash used to locate user personas.
+     */
+    @Transactional
+    public void clearSessionsBySsnDobHash(String ssnDobHash) {
+        // Step 1: Retrieve all personas for the given ssnDobHash.
+        List<Personas> personas = personaRepository.findAllBySsnDobHash(ssnDobHash);
+        if (personas.isEmpty()) {
+            throw new IllegalArgumentException("No personas found for the provided ssnDobHash.");
+        }
+
+        // Step 2: Collect all unique session IDs.
+        // (Assumes the 'uuid' field in Personas stores the session identifier.)
+        Set<String> sessionIds = new HashSet<>();
+        for (Personas persona : personas) {
+            if (persona.getUuid() != null) {
+                sessionIds.add(persona.getUuid());
+            }
+        }
+
+        // Step 3: Delete each session from the session repository.
+        sessionIds.forEach(sessionRepository::deleteById);
+
+        // Step 4: Expire corresponding sessions in the SessionRegistry.
+        for (Object principal : sessionRegistry.getAllPrincipals()) {
+            List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
+            sessions.stream()
+                    .filter(sessionInfo -> sessionIds.contains(sessionInfo.getSessionId()))
+                    .forEach(SessionInformation::expireNow);
+        }
+
+        // Step 5: Remove expired sessions from the SessionRegistry.
+        sessionIds.forEach(sessionRegistry::removeSessionInformation);
+    }
 }
