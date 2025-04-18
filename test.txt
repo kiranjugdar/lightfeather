@@ -1,55 +1,66 @@
-import java.util.List;
-import java.util.Map;
+// src/main/java/com/yourcompany/yourapp/ClaimStatusDetailsComparator.java
+package com.yourcompany.yourapp;
 
-import org.springframework.security.core.session.SessionInformation;
-import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.session.FindByIndexNameSessionRepository;
-import org.springframework.session.Session;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME;
+import java.util.Comparator;
 
-@Service
-public class SessionClearanceService {
+public class ClaimStatusDetailsComparator
+        implements Comparator<ClaimStatusDetails> {
 
-    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
-    private final SessionRegistry sessionRegistry;
+    @Override
+    public int compare(ClaimStatusDetails d1,
+                       ClaimStatusDetails d2) {
+        String code1 = d1.getTitleCode();
+        String code2 = d2.getTitleCode();
 
-    public SessionClearanceService(FindByIndexNameSessionRepository<? extends Session> sessionRepository,
-                                   SessionRegistry sessionRegistry) {
-        this.sessionRepository = sessionRepository;
-        this.sessionRegistry = sessionRegistry;
+        // --- nulls last ---
+        if (code1 == null && code2 == null) return 0;
+        if (code1 == null)                 return 1;
+        if (code2 == null)                 return -1;
+
+        // --- rank each code ---
+        int rank1 = rank(code1);
+        int rank2 = rank(code2);
+
+        // smaller rank => comes first
+        return Integer.compare(rank1, rank2);
     }
 
     /**
-     * Clears all sessions whose principal_name (serial number) matches the given serialNumber.
-     * This method does the following:
-     *  1. Retrieves sessions by the principalName (using the built-in index).
-     *  2. Deletes each session found from the session repository.
-     *  3. Expires and removes the corresponding sessions from the SessionRegistry.
-     *
-     * @param serialNumber the serial number used as the principal name.
+     * Your custom ordering:
+     *  "T2"  → 1
+     *  "T16" → 2
+     *  "T18" → 3
+     *  any other code → Integer.MAX_VALUE (so they sort last)
      */
-    @Transactional
-    public void clearSessionsForSerialNumber(String serialNumber) {
-        // Step 1: Retrieve all sessions where the principal_name equals the provided serial number.
-        Map<String, ? extends Session> sessions = 
-                sessionRepository.findByIndexNameAndIndexValue(PRINCIPAL_NAME_INDEX_NAME, serialNumber);
-        
-        // Step 2: Delete each session from the repository.
-        for (String sessionId : sessions.keySet()) {
-            sessionRepository.deleteById(sessionId);
-        }
-        
-        // Step 3: Expire and remove matching sessions from the SessionRegistry.
-        for (Object principal : sessionRegistry.getAllPrincipals()) {
-            List<SessionInformation> sessionInfos = sessionRegistry.getAllSessions(principal, false);
-            for (SessionInformation sessionInfo : sessionInfos) {
-                if (sessions.containsKey(sessionInfo.getSessionId())) {
-                    sessionInfo.expireNow();
-                    sessionRegistry.removeSessionInformation(sessionInfo.getSessionId());
-                }
-            }
+    private int rank(String titleCode) {
+        if ("T2".equals(titleCode)) {
+            return 1;
+        } else if ("T16".equals(titleCode)) {
+            return 2;
+        } else if ("T18".equals(titleCode)) {
+            return 3;
+        } else {
+            return Integer.MAX_VALUE;
         }
     }
 }
+
+-----
+// CommonApsService.java
+package com.yourcompany.yourapp;
+
+import java.util.List;
+
+public class CommonApsService {
+
+    public List<ClaimStatusDetails> sortClaimStatusDetails(
+            List<ClaimStatusDetails> list
+    ) {
+        return list.stream()
+                   .sorted(new ClaimStatusDetailsComparator())
+                   .toList();  // or .collect(Collectors.toList()) on Java 8–15
+    }
+
+    // …other methods…
+}
+
