@@ -1,137 +1,127 @@
-package com.yourcompany.yourapp.services;  // ← adjust to your package
+package gov.ssa.telephone.taps.services;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
 
-import com.yourcompany.yourapp.common.CommonApsService;
-import com.yourcompany.yourapp.factories.ClaimFactory;
-import com.yourcompany.yourapp.interpreter.ClaimLangInterpreter;
-import com.yourcompany.yourapp.model.*;       // ClaimStatusRequest, ClaimStatusResponse, ClaimStatusData, CommonContent, ClaimStatusDetails, ClaimDetails, DdsData, DdsStatus, etc.
-import com.yourcompany.yourapp.lookup.OfficeLookupService;
-import com.yourcompany.yourapp.constants.AppDataStatus;
-import com.yourcompany.yourapp.constants.TeleApsConstants;
-import com.yourcompany.yourapp.exceptions.ApplicationException;
+import gov.ssa.telephone.taps.constants.AppDataStatus;
+import gov.ssa.telephone.taps.constants.TeleApsConstants;
+import gov.ssa.telephone.taps.exceptions.ApplicationException;
+import gov.ssa.telephone.taps.model.CommonContent;
 
 @ExtendWith(MockitoExtension.class)
 class ClaimStatusServiceTest {
 
     @Mock
-    private CommonApsService commonApsService;
+    private RestTemplate commonApsRestTemplate;
 
     @Mock
-    private OfficeLookupService officeLookupService;
+    private TeleApsConstants teleApsConstants;
 
     @InjectMocks
     private ClaimStatusService service;
 
-    private ClaimStatusRequest request;
-
     @BeforeEach
     void setUp() {
-        request = new ClaimStatusRequest();
-        request.setClaimSsn("123‑45‑6789");
-        request.setRequestId("REQ‑001");
-        // suppose your request has a header object
-        RequestHeader hdr = new RequestHeader();
-        hdr.setSource("IVR");
-        request.setHeader(hdr);
+        // Stub out the HTTP method your service uses
+        when(teleApsConstants.getCommonApsMethod()).thenReturn("POST");
+        // Inject the URL/URI your service calls
+        ReflectionTestUtils.setField(
+            service,
+            "apswsClaimResource",
+            "http://dummy-host/v3/claim"
+        );
+        // In case you wired TeleApsConstants via field injection
+        ReflectionTestUtils.setField(
+            service,
+            "teleApsConstants",
+            teleApsConstants
+        );
     }
 
     @Test
-    void whenCommonApsThrows_shouldWrapInApplicationExceptionWithSystemFailure() {
-        // arrange: simulate REST client failure
-        when(commonApsService.getClaimData(anyString(), anyString()))
+    void whenRestTemplateThrows_thenWrapInApplicationException() {
+        // arrange
+        when(commonApsRestTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(CommonContent[].class)))
             .thenThrow(new RuntimeException("timeout"));
 
         // act & assert
-        ApplicationException ex = assertThrows(ApplicationException.class,
-            () -> service.getClaimStatus(request)
+        ApplicationException ex = assertThrows(
+            ApplicationException.class,
+            () -> service.getClaimData("123-45-6789", "REQ-001")
         );
 
-        // verify that we got the SYSTEM_FAILURE status and OK http code
         assertEquals(AppDataStatus.SYSTEM_FAILURE, ex.getAppDataStatus());
-        assertEquals(HttpStatus.OK, ex.getHttpStatus());
-
-        // message should include your constant
-        assertTrue(ex.getMessage().contains(TeleApsConstants.REST_CLIENT_EXCEPTION_MSG));
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getHttpStatus());
+        assertEquals(
+            TeleApsConstants.COMMON_SERVICE_NOT_OK_MSG,
+            ex.getMessage()
+        );
     }
 
     @Test
-    void whenNoClaimsFound_shouldReturnZeroClaimsWithNoClaimsStatus() {
-        // arrange: no claims returned
-        when(commonApsService.getClaimData(anyString(), anyString()))
-            .thenReturn(Collections.emptyList());
+    void whenResponseOk_thenReturnBodyAsList() {
+        // arrange
+        CommonContent c1 = new CommonContent();
+        CommonContent c2 = new CommonContent();
+        ResponseEntity<CommonContent[]> okResponse =
+            new ResponseEntity<>(new CommonContent[]{c1, c2}, HttpStatus.OK);
+
+        when(commonApsRestTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(CommonContent[].class)))
+            .thenReturn(okResponse);
 
         // act
-        ClaimStatusResponse resp = service.getClaimStatus(request);
-        ClaimStatusData data = resp.getAppData();
+        List<CommonContent> result =
+            service.getClaimData("999-99-9999", "REQ-002");
 
         // assert
-        assertEquals("0", data.getNumberOfClaims());
-        assertEquals(AppDataStatus.NO_CLAIMS_FOUND_0400, data.getStatus());
-        assertEquals(AppDataStatus.NO_CLAIMS_FOUND_0400.getCode(), data.getStatusCode());
-        assertNotNull(data.getClaimStatusDetailsList());
-        assertTrue(data.getClaimStatusDetailsList().isEmpty());
-
-        // header should be passed through
-        assertEquals("IVR", resp.getHeader().getSource());
+        assertEquals(2, result.size());
+        assertSame(c1, result.get(0));
+        assertSame(c2, result.get(1));
     }
 
     @Test
-    void whenClaimsReturned_shouldBuildAndSortResponseSuccessfully() {
-        // arrange: simulate two raw CommonContent items
-        CommonContent raw1 = new CommonContent();  // no foCode, no ddsData → shortcuts in getClaimStatusDetails
-        CommonContent raw2 = new CommonContent();
-        when(commonApsService.getClaimData(anyString(), anyString()))
-            .thenReturn(List.of(raw2, raw1));
+    void whenResponseNotOk_thenReturnEmptyList() {
+        // arrange
+        ResponseEntity<CommonContent[]> badResponse =
+            new ResponseEntity<>(new CommonContent[]{ new CommonContent() },
+                                 HttpStatus.BAD_REQUEST);
 
-        // stub out your ClaimFactory → interpreter → claimDetails(...) chain
-        ClaimLangInterpreter interpreter = mock(ClaimLangInterpreter.class);
-        ClaimDetails detail = new ClaimDetails();
-        detail.setTemplateId("TPL1");
-        detail.setParameters(Map.of("foo", "bar"));
-        detail.setVerbiage("Here is your status");
-        detail.setTitleCode("T2");
-        when(interpreter.claimDetails(any(CommonContent.class))).thenReturn(detail);
+        when(commonApsRestTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(CommonContent[].class)))
+            .thenReturn(badResponse);
 
-        try (MockedStatic<ClaimFactory> cf = mockStatic(ClaimFactory.class)) {
-            cf.when(() -> ClaimFactory.getInstance(any(), any(), any()))
-              .thenReturn(interpreter);
+        // act
+        List<CommonContent> result =
+            service.getClaimData("555-55-5555", "REQ-003");
 
-            // act
-            ClaimStatusResponse resp = service.getClaimStatus(request);
-            ClaimStatusData data = resp.getAppData();
-
-            // assert basic metadata
-            assertEquals("2", data.getNumberOfClaims());
-            assertEquals(AppDataStatus.CLAIMSTATUS_SUCCESSFUL, data.getStatus());
-            assertEquals(AppDataStatus.CLAIMSTATUS_SUCCESSFUL.getCode(), data.getStatusCode());
-
-            // each raw item produced one ClaimStatusDetails
-            List<ClaimStatusDetails> details = data.getClaimStatusDetailsList();
-            assertEquals(2, details.size());
-
-            // since both had titleCode "T2", order is unchanged but comparator still ran
-            for (ClaimStatusDetails csd : details) {
-                assertEquals("TPL1", csd.getTemplateId());
-                assertEquals("Here is your status", csd.getVerbiage());
-                assertEquals("T2", csd.getTitleCode());
-                assertEquals("bar", csd.getFillables().get("foo"));
-            }
-        }
+        // assert
+        assertTrue(result.isEmpty());
     }
 }
