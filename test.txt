@@ -1,66 +1,97 @@
-// src/main/java/com/yourcompany/yourapp/ClaimStatusDetailsComparator.java
 package com.yourcompany.yourapp;
 
-import java.util.Comparator;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class ClaimStatusDetailsComparator
-        implements Comparator<ClaimStatusDetails> {
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-    @Override
-    public int compare(ClaimStatusDetails d1,
-                       ClaimStatusDetails d2) {
-        String code1 = d1.getTitleCode();
-        String code2 = d2.getTitleCode();
-
-        // --- nulls last ---
-        if (code1 == null && code2 == null) return 0;
-        if (code1 == null)                 return 1;
-        if (code2 == null)                 return -1;
-
-        // --- rank each code ---
-        int rank1 = rank(code1);
-        int rank2 = rank(code2);
-
-        // smaller rank => comes first
-        return Integer.compare(rank1, rank2);
-    }
-
-    /**
-     * Your custom ordering:
-     *  "T2"  → 1
-     *  "T16" → 2
-     *  "T18" → 3
-     *  any other code → Integer.MAX_VALUE (so they sort last)
-     */
-    private int rank(String titleCode) {
-        if ("T2".equals(titleCode)) {
-            return 1;
-        } else if ("T16".equals(titleCode)) {
-            return 2;
-        } else if ("T18".equals(titleCode)) {
-            return 3;
-        } else {
-            return Integer.MAX_VALUE;
-        }
-    }
-}
-
------
-// CommonApsService.java
-package com.yourcompany.yourapp;
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class CommonApsService {
+class ClaimStatusDetailsComparatorTest {
 
-    public List<ClaimStatusDetails> sortClaimStatusDetails(
-            List<ClaimStatusDetails> list
-    ) {
-        return list.stream()
-                   .sorted(new ClaimStatusDetailsComparator())
-                   .toList();  // or .collect(Collectors.toList()) on Java 8–15
+    private ClaimStatusDetailsComparator comparator;
+
+    @BeforeEach
+    void setUp() {
+        comparator = new ClaimStatusDetailsComparator();
     }
 
-    // …other methods…
-}
+    /** Helper to create a ClaimStatusDetails with the given code. */
+    private ClaimStatusDetails withCode(String code) {
+        ClaimStatusDetails d = new ClaimStatusDetails();
+        d.setTitleCode(code);
+        return d;
+    }
 
+    @Test
+    void bothCodesNull_areEqual() {
+        ClaimStatusDetails a = withCode(null);
+        ClaimStatusDetails b = withCode(null);
+        assertEquals(0, comparator.compare(a, b));
+    }
+
+    @Test
+    void nullFirst_comesAfterNonNull() {
+        ClaimStatusDetails nullDetail = withCode(null);
+        ClaimStatusDetails t2Detail   = withCode("T2");
+
+        // null vs non-null should return > 0, meaning null is “greater” and sorts last
+        assertTrue(comparator.compare(nullDetail, t2Detail) > 0);
+        assertTrue(comparator.compare(t2Detail, nullDetail) < 0);
+    }
+
+    @Test
+    void knownCodes_sortByRank() {
+        ClaimStatusDetails t2  = withCode("T2");   // rank=1
+        ClaimStatusDetails t16 = withCode("T16"); // rank=2
+        ClaimStatusDetails t18 = withCode("T18"); // rank=3
+
+        assertTrue(comparator.compare(t2, t16) < 0);
+        assertTrue(comparator.compare(t16, t2) > 0);
+
+        assertTrue(comparator.compare(t16, t18) < 0);
+        assertTrue(comparator.compare(t18, t16) > 0);
+
+        assertTrue(comparator.compare(t2, t18) < 0);
+    }
+
+    @Test
+    void unknownCodes_areEqualRankedLast() {
+        ClaimStatusDetails x1 = withCode("X");
+        ClaimStatusDetails x2 = withCode("Y");
+        // both map to Integer.MAX_VALUE
+        assertEquals(0, comparator.compare(x1, x2));
+    }
+
+    @Test
+    void unknownCode_comesAfterKnown() {
+        ClaimStatusDetails known   = withCode("T2");   // rank=1
+        ClaimStatusDetails unknown = withCode("FOO");  // rank=MAX_VALUE
+
+        assertTrue(comparator.compare(known, unknown) < 0);
+        assertTrue(comparator.compare(unknown, known) > 0);
+    }
+
+    @Test
+    void sortingAList_producesExpectedOrder() {
+        var items = new ArrayList<ClaimStatusDetails>();
+        items.add(withCode("X"));       // unknown
+        items.add(withCode("T16"));     // rank=2
+        items.add(withCode(null));      // null
+        items.add(withCode("T2"));      // rank=1
+        items.add(withCode("T18"));     // rank=3
+
+        // sort in‑place
+        items.sort(comparator);
+
+        List<String> actualOrder = items.stream()
+                                        .map(ClaimStatusDetails::getTitleCode)
+                                        .collect(Collectors.toList());
+
+        // expect [T2, T16, T18, X, null]
+        List<String> expected = List.of("T2", "T16", "T18", "X", null);
+        assertEquals(expected, actualOrder);
+    }
+}
