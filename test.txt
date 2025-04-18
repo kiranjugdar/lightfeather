@@ -1,97 +1,137 @@
-package com.yourcompany.yourapp;
+package com.yourcompany.yourapp.services;  // ← adjust to your package
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.yourcompany.yourapp.common.CommonApsService;
+import com.yourcompany.yourapp.factories.ClaimFactory;
+import com.yourcompany.yourapp.interpreter.ClaimLangInterpreter;
+import com.yourcompany.yourapp.model.*;       // ClaimStatusRequest, ClaimStatusResponse, ClaimStatusData, CommonContent, ClaimStatusDetails, ClaimDetails, DdsData, DdsStatus, etc.
+import com.yourcompany.yourapp.lookup.OfficeLookupService;
+import com.yourcompany.yourapp.constants.AppDataStatus;
+import com.yourcompany.yourapp.constants.TeleApsConstants;
+import com.yourcompany.yourapp.exceptions.ApplicationException;
 
-class ClaimStatusDetailsComparatorTest {
+@ExtendWith(MockitoExtension.class)
+class ClaimStatusServiceTest {
 
-    private ClaimStatusDetailsComparator comparator;
+    @Mock
+    private CommonApsService commonApsService;
+
+    @Mock
+    private OfficeLookupService officeLookupService;
+
+    @InjectMocks
+    private ClaimStatusService service;
+
+    private ClaimStatusRequest request;
 
     @BeforeEach
     void setUp() {
-        comparator = new ClaimStatusDetailsComparator();
-    }
-
-    /** Helper to create a ClaimStatusDetails with the given code. */
-    private ClaimStatusDetails withCode(String code) {
-        ClaimStatusDetails d = new ClaimStatusDetails();
-        d.setTitleCode(code);
-        return d;
-    }
-
-    @Test
-    void bothCodesNull_areEqual() {
-        ClaimStatusDetails a = withCode(null);
-        ClaimStatusDetails b = withCode(null);
-        assertEquals(0, comparator.compare(a, b));
+        request = new ClaimStatusRequest();
+        request.setClaimSsn("123‑45‑6789");
+        request.setRequestId("REQ‑001");
+        // suppose your request has a header object
+        RequestHeader hdr = new RequestHeader();
+        hdr.setSource("IVR");
+        request.setHeader(hdr);
     }
 
     @Test
-    void nullFirst_comesAfterNonNull() {
-        ClaimStatusDetails nullDetail = withCode(null);
-        ClaimStatusDetails t2Detail   = withCode("T2");
+    void whenCommonApsThrows_shouldWrapInApplicationExceptionWithSystemFailure() {
+        // arrange: simulate REST client failure
+        when(commonApsService.getClaimData(anyString(), anyString()))
+            .thenThrow(new RuntimeException("timeout"));
 
-        // null vs non-null should return > 0, meaning null is “greater” and sorts last
-        assertTrue(comparator.compare(nullDetail, t2Detail) > 0);
-        assertTrue(comparator.compare(t2Detail, nullDetail) < 0);
+        // act & assert
+        ApplicationException ex = assertThrows(ApplicationException.class,
+            () -> service.getClaimStatus(request)
+        );
+
+        // verify that we got the SYSTEM_FAILURE status and OK http code
+        assertEquals(AppDataStatus.SYSTEM_FAILURE, ex.getAppDataStatus());
+        assertEquals(HttpStatus.OK, ex.getHttpStatus());
+
+        // message should include your constant
+        assertTrue(ex.getMessage().contains(TeleApsConstants.REST_CLIENT_EXCEPTION_MSG));
     }
 
     @Test
-    void knownCodes_sortByRank() {
-        ClaimStatusDetails t2  = withCode("T2");   // rank=1
-        ClaimStatusDetails t16 = withCode("T16"); // rank=2
-        ClaimStatusDetails t18 = withCode("T18"); // rank=3
+    void whenNoClaimsFound_shouldReturnZeroClaimsWithNoClaimsStatus() {
+        // arrange: no claims returned
+        when(commonApsService.getClaimData(anyString(), anyString()))
+            .thenReturn(Collections.emptyList());
 
-        assertTrue(comparator.compare(t2, t16) < 0);
-        assertTrue(comparator.compare(t16, t2) > 0);
+        // act
+        ClaimStatusResponse resp = service.getClaimStatus(request);
+        ClaimStatusData data = resp.getAppData();
 
-        assertTrue(comparator.compare(t16, t18) < 0);
-        assertTrue(comparator.compare(t18, t16) > 0);
+        // assert
+        assertEquals("0", data.getNumberOfClaims());
+        assertEquals(AppDataStatus.NO_CLAIMS_FOUND_0400, data.getStatus());
+        assertEquals(AppDataStatus.NO_CLAIMS_FOUND_0400.getCode(), data.getStatusCode());
+        assertNotNull(data.getClaimStatusDetailsList());
+        assertTrue(data.getClaimStatusDetailsList().isEmpty());
 
-        assertTrue(comparator.compare(t2, t18) < 0);
+        // header should be passed through
+        assertEquals("IVR", resp.getHeader().getSource());
     }
 
     @Test
-    void unknownCodes_areEqualRankedLast() {
-        ClaimStatusDetails x1 = withCode("X");
-        ClaimStatusDetails x2 = withCode("Y");
-        // both map to Integer.MAX_VALUE
-        assertEquals(0, comparator.compare(x1, x2));
-    }
+    void whenClaimsReturned_shouldBuildAndSortResponseSuccessfully() {
+        // arrange: simulate two raw CommonContent items
+        CommonContent raw1 = new CommonContent();  // no foCode, no ddsData → shortcuts in getClaimStatusDetails
+        CommonContent raw2 = new CommonContent();
+        when(commonApsService.getClaimData(anyString(), anyString()))
+            .thenReturn(List.of(raw2, raw1));
 
-    @Test
-    void unknownCode_comesAfterKnown() {
-        ClaimStatusDetails known   = withCode("T2");   // rank=1
-        ClaimStatusDetails unknown = withCode("FOO");  // rank=MAX_VALUE
+        // stub out your ClaimFactory → interpreter → claimDetails(...) chain
+        ClaimLangInterpreter interpreter = mock(ClaimLangInterpreter.class);
+        ClaimDetails detail = new ClaimDetails();
+        detail.setTemplateId("TPL1");
+        detail.setParameters(Map.of("foo", "bar"));
+        detail.setVerbiage("Here is your status");
+        detail.setTitleCode("T2");
+        when(interpreter.claimDetails(any(CommonContent.class))).thenReturn(detail);
 
-        assertTrue(comparator.compare(known, unknown) < 0);
-        assertTrue(comparator.compare(unknown, known) > 0);
-    }
+        try (MockedStatic<ClaimFactory> cf = mockStatic(ClaimFactory.class)) {
+            cf.when(() -> ClaimFactory.getInstance(any(), any(), any()))
+              .thenReturn(interpreter);
 
-    @Test
-    void sortingAList_producesExpectedOrder() {
-        var items = new ArrayList<ClaimStatusDetails>();
-        items.add(withCode("X"));       // unknown
-        items.add(withCode("T16"));     // rank=2
-        items.add(withCode(null));      // null
-        items.add(withCode("T2"));      // rank=1
-        items.add(withCode("T18"));     // rank=3
+            // act
+            ClaimStatusResponse resp = service.getClaimStatus(request);
+            ClaimStatusData data = resp.getAppData();
 
-        // sort in‑place
-        items.sort(comparator);
+            // assert basic metadata
+            assertEquals("2", data.getNumberOfClaims());
+            assertEquals(AppDataStatus.CLAIMSTATUS_SUCCESSFUL, data.getStatus());
+            assertEquals(AppDataStatus.CLAIMSTATUS_SUCCESSFUL.getCode(), data.getStatusCode());
 
-        List<String> actualOrder = items.stream()
-                                        .map(ClaimStatusDetails::getTitleCode)
-                                        .collect(Collectors.toList());
+            // each raw item produced one ClaimStatusDetails
+            List<ClaimStatusDetails> details = data.getClaimStatusDetailsList();
+            assertEquals(2, details.size());
 
-        // expect [T2, T16, T18, X, null]
-        List<String> expected = List.of("T2", "T16", "T18", "X", null);
-        assertEquals(expected, actualOrder);
+            // since both had titleCode "T2", order is unchanged but comparator still ran
+            for (ClaimStatusDetails csd : details) {
+                assertEquals("TPL1", csd.getTemplateId());
+                assertEquals("Here is your status", csd.getVerbiage());
+                assertEquals("T2", csd.getTitleCode());
+                assertEquals("bar", csd.getFillables().get("foo"));
+            }
+        }
     }
 }
