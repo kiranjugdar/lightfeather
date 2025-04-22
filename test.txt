@@ -1,127 +1,64 @@
-package gov.ssa.telephone.taps.services;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import java.util.List;
+@Component
+public class HttpLoggingFilter extends OncePerRequestFilter {
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+                                    throws ServletException, IOException {
+        // Wrap request & response to cache the payloads
+        ContentCachingRequestWrapper wrappedRequest  = new ContentCachingRequestWrapper(request);
+        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
 
-import gov.ssa.telephone.taps.constants.AppDataStatus;
-import gov.ssa.telephone.taps.constants.TeleApsConstants;
-import gov.ssa.telephone.taps.exceptions.ApplicationException;
-import gov.ssa.telephone.taps.model.CommonContent;
-
-@ExtendWith(MockitoExtension.class)
-class ClaimStatusServiceTest {
-
-    @Mock
-    private RestTemplate commonApsRestTemplate;
-
-    @Mock
-    private TeleApsConstants teleApsConstants;
-
-    @InjectMocks
-    private ClaimStatusService service;
-
-    @BeforeEach
-    void setUp() {
-        // Stub out the HTTP method your service uses
-        when(teleApsConstants.getCommonApsMethod()).thenReturn("POST");
-        // Inject the URL/URI your service calls
-        ReflectionTestUtils.setField(
-            service,
-            "apswsClaimResource",
-            "http://dummy-host/v3/claim"
-        );
-        // In case you wired TeleApsConstants via field injection
-        ReflectionTestUtils.setField(
-            service,
-            "teleApsConstants",
-            teleApsConstants
-        );
+        try {
+            filterChain.doFilter(wrappedRequest, wrappedResponse);
+        } finally {
+            // After controller has run, you can read the payloads
+            logRequest(wrappedRequest);
+            logResponse(wrappedResponse);
+            // VERY IMPORTANT: copy the buffered response back to the real response
+            wrappedResponse.copyBodyToResponse();
+        }
     }
 
-    @Test
-    void whenRestTemplateThrows_thenWrapInApplicationException() {
-        // arrange
-        when(commonApsRestTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(CommonContent[].class)))
-            .thenThrow(new RuntimeException("timeout"));
-
-        // act & assert
-        ApplicationException ex = assertThrows(
-            ApplicationException.class,
-            () -> service.getClaimData("123-45-6789", "REQ-001")
-        );
-
-        assertEquals(AppDataStatus.SYSTEM_FAILURE, ex.getAppDataStatus());
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getHttpStatus());
-        assertEquals(
-            TeleApsConstants.COMMON_SERVICE_NOT_OK_MSG,
-            ex.getMessage()
-        );
+    private void logRequest(ContentCachingRequestWrapper req) {
+        String uri      = req.getRequestURI();
+        String method   = req.getMethod();
+        String query    = req.getQueryString();
+        String payload  = getPayload(req.getContentAsByteArray(), req.getCharacterEncoding());
+        logger.info(String.format("REQUEST %s %s?%s\nHeaders: %s\nBody: %s",
+                    method, uri, query,
+                    Collections.list(req.getHeaderNames())
+                               .stream()
+                               .map(h -> h + "=" + req.getHeader(h))
+                               .collect(Collectors.joining(", ")),
+                    payload));
     }
 
-    @Test
-    void whenResponseOk_thenReturnBodyAsList() {
-        // arrange
-        CommonContent c1 = new CommonContent();
-        CommonContent c2 = new CommonContent();
-        ResponseEntity<CommonContent[]> okResponse =
-            new ResponseEntity<>(new CommonContent[]{c1, c2}, HttpStatus.OK);
-
-        when(commonApsRestTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(CommonContent[].class)))
-            .thenReturn(okResponse);
-
-        // act
-        List<CommonContent> result =
-            service.getClaimData("999-99-9999", "REQ-002");
-
-        // assert
-        assertEquals(2, result.size());
-        assertSame(c1, result.get(0));
-        assertSame(c2, result.get(1));
+    private void logResponse(ContentCachingResponseWrapper res) {
+        int    status  = res.getStatus();
+        String payload = getPayload(res.getContentAsByteArray(), res.getCharacterEncoding());
+        logger.info(String.format("RESPONSE Status=%d, Body=%s", status, payload));
     }
 
-    @Test
-    void whenResponseNotOk_thenReturnEmptyList() {
-        // arrange
-        ResponseEntity<CommonContent[]> badResponse =
-            new ResponseEntity<>(new CommonContent[]{ new CommonContent() },
-                                 HttpStatus.BAD_REQUEST);
-
-        when(commonApsRestTemplate.exchange(
-                anyString(),
-                eq(HttpMethod.POST),
-                any(HttpEntity.class),
-                eq(CommonContent[].class)))
-            .thenReturn(badResponse);
-
-        // act
-        List<CommonContent> result =
-            service.getClaimData("555-55-5555", "REQ-003");
-
-        // assert
-        assertTrue(result.isEmpty());
+    private String getPayload(byte[] buf, String encoding) {
+        if (buf == null || buf.length == 0) return "[empty]";
+        try {
+            return new String(buf, 0, buf.length, encoding != null ? encoding : StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            return "[unknown]";
+        }
     }
 }
