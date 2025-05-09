@@ -27,7 +27,7 @@ public Saml2AuthenticationRequestResolver authenticationRequestResolver(
 server:
   servlet:
     session:
-      cookie:
+      cookie: 
         name: JSESSIONID
 spring:
   session:
