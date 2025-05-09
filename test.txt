@@ -1,34 +1,34 @@
-@Bean
-public HttpSessionSaml2AuthenticationRequestContextRepository samlRequestRepository() {
-  return new HttpSessionSaml2AuthenticationRequestContextRepository();
+@Override
+public String toString() {
+    StringBuilder sb = new StringBuilder();
+
+    // 1) address lines
+    appendIfNotBlank(sb, line1);
+    appendIfNotBlank(sb, line2);
+    appendIfNotBlank(sb, line3);
+    appendIfNotBlank(sb, line4);
+
+    // 2) city, state, zip
+    if (city != null && !city.isBlank()) {
+        sb.append(city);
+        if (stateOrProvince != null && !stateOrProvince.isBlank()) {
+            sb.append(", ").append(stateOrProvince);
+        }
+        if (zip5 != null && !zip5.isBlank()) {
+            sb.append(" ").append(zip5);
+            if (zip4 != null && !zip4.isBlank()) {
+                sb.append("-").append(zip4);
+            }
+        }
+    }
+
+    // trim off any trailing newline and return
+    return sb.toString().trim();
 }
 
------
-
-@Bean
-public Saml2AuthenticationRequestResolver authenticationRequestResolver(
-  RelyingPartyRegistrationRepository repo,
-  HttpSessionSaml2AuthenticationRequestContextRepository repoForContext
-) {
-  OpenSaml4AuthenticationRequestResolver resolver =
-    new OpenSaml4AuthenticationRequestResolver(repo);
-  // tell it _where_ to save the request ID
-  resolver.setAuthenticationRequestContextRepository(repoForContext);
-
-  // your existing RelayState stuff…
-  resolver.setRelayStateResolver(request -> { … });
-
-  return resolver;
+/** Helper: append the line + newline if it's not null/blank */
+private void appendIfNotBlank(StringBuilder sb, String line) {
+    if (line != null && !line.isBlank()) {
+        sb.append(line).append("\n");
+    }
 }
-
-
------
-
-server:
-  servlet:
-    session:
-      cookie: 
-        name: JSESSIONID
-spring:
-  session:
-    store-type: jdbc
