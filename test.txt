@@ -1,64 +1,42 @@
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
-public class AddressTest {
+static void addSubmitOrEstablishmentDate(Map<String, Object> params, ClaimInfo info) {
+    String submitDateStr       = info.getClaimStatusData().getInternetSubmitDate();
+    String establishmentDateStr = info.getClaimStatusData().getEstablishmentDate();
 
-    @Test
-    public void testToString() {
-        // Test 1: All fields populated
-        Address address1 = Address.builder()
-                .line1("123 Main St")
-                .line2("Apt 4B")
-                .line3("Some neighborhood")
-                .line4("Some city")
-                .city("Baltimore")
-                .stateOrProvince("MD")
-                .zip5("21235")
-                .zip4("6789")
-                .build();
-        String expected1 = "123 Main St\nApt 4B\nSome neighborhood\nSome city\nBaltimore, MD 21235-6789";
-        assertEquals(expected1, address1.toString());
+    // parse helpers
+    LocalDate submitDate       = parseDate(submitDateStr);
+    LocalDate establishmentDate = parseDate(establishmentDateStr);
 
-        // Test 2: Only line1 and city, state, zip5 populated
-        Address address2 = Address.builder()
-                .line1("456 Elm St")
-                .city("New York")
-                .stateOrProvince("NY")
-                .zip5("10001")
-                .build();
-        String expected2 = "456 Elm St\nNew York, NY 10001";
-        assertEquals(expected2, address2.toString());
+    // determine which to use
+    LocalDate earliest = null;
+    if (submitDate != null && establishmentDate != null) {
+        earliest = submitDate.isBefore(establishmentDate) 
+                   ? submitDate 
+                   : establishmentDate;
+    } else if (submitDate != null) {
+        earliest = submitDate;
+    } else if (establishmentDate != null) {
+        earliest = establishmentDate;
+    }
 
-        // Test 3: Only city, state, and zip5 (no address lines)
-        Address address3 = Address.builder()
-                .city("San Francisco")
-                .stateOrProvince("CA")
-                .zip5("94105")
-                .build();
-        String expected3 = "San Francisco, CA 94105";
-        assertEquals(expected3, address3.toString());
+    // only put if we found one
+    if (earliest != null) {
+        // re‑format back to the same string format
+        params.put(INTERNET_SUBMIT_DATE, earliest.format(DateTimeFormatter.ISO_DATE));
+    }
+}
 
-        // Test 4: No city, only address lines
-        Address address4 = Address.builder()
-                .line1("789 Oak Ave")
-                .line2("Unit 12")
-                .build();
-        String expected4 = "789 Oak Ave\nUnit 12";
-        assertEquals(expected4, address4.toString());
-
-        // Test 5: No fields populated (empty address)
-        Address address5 = Address.builder().build();
-        String expected5 = "";
-        assertEquals(expected5, address5.toString());
-
-        // Test 6: Only zip5 with zip4
-        Address address6 = Address.builder()
-                .city("Austin")
-                .stateOrProvince("TX")
-                .zip5("73301")
-                .zip4("1234")
-                .build();
-        String expected6 = "Austin, TX 73301-1234";
-        assertEquals(expected6, address6.toString());
+// safe parser that returns null on bad input
+private static LocalDate parseDate(String dateStr) {
+    if (dateStr == null) return null;
+    try {
+        // adjust formatter if your strings include time, e.g. DateTimeFormatter.ISO_DATE_TIME
+        return LocalDate.parse(dateStr, DateTimeFormatter.ISO_DATE);
+    } catch (DateTimeParseException e) {
+        // log.warn("Could not parse date – ", e);
+        return null;
     }
 }
