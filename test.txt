@@ -1,0 +1,222 @@
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "applicant@example.com",
+  "foreignTravel": {
+    "traveledLastSevenYears": true,
+    "solelyGovBusinessLastSevenYears": false,
+    "trips": [
+      {
+        "country": "Dominican Republic",
+        "fromMonthYear": "2019-10",
+        "toMonthYear": "2019-10",
+        "totalDaysCategory": "1-5",
+        "purposes": [
+          "Tourism"
+        ],
+        "questionedOrDetained": false,
+        "questionedExplanation": null,
+        "policeEncounter": false,
+        "policeExplanation": null,
+        "contactWithForeignIntelligence": false,
+        "contactWithForeignIntelligenceExplanation": null,
+        "counterintelligenceIssue": false,
+        "counterintelligenceIssueExplanation": null,
+        "contactedByExcessiveInterest": false,
+        "contactedByExcessiveInterestExplanation": null,
+        "contactedByClassifiedInfo": false,
+        "contactedByClassifiedInfoExplanation": null,
+        "threatenedOrCoerced": false,
+        "threatenedOrCoercedExplanation": null
+      }
+    ]
+  }
+}
+
+
+------------
+
+CREATE TABLE user_foreign_travel (
+  user_id UUID PRIMARY KEY,
+  email TEXT NOT NULL,
+  data JSONB NOT NULL,              -- holds the JSON payload above
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- index on email for fast lookups
+CREATE INDEX idx_user_foreign_travel_email
+  ON user_foreign_travel(email);
+
+---------------------------------
+
+package com.example.securityclearance;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
+import org.hibernate.annotations.Type;
+import org.hibernate.annotations.TypeDef;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+// --- DTO ---
+public class ForeignTravelRequest {
+    private UUID userId;
+    private String email;
+    private JsonNode foreignTravel;  // raw JSON
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public JsonNode getForeignTravel() { return foreignTravel; }
+    public void setForeignTravel(JsonNode foreignTravel) { this.foreignTravel = foreignTravel; }
+}
+
+// --- JPA Entity ---
+@Entity
+@Table(name = "user_foreign_travel")
+@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
+public class UserForeignTravel {
+
+    @Id
+    @Column(name = "user_id", columnDefinition = "uuid")
+    private UUID userId;
+
+    @Column(nullable = false)
+    private String email;
+
+    @Type(type = "jsonb")
+    @Column(name = "data", columnDefinition = "jsonb")
+    private JsonNode data;  // stores raw JSONB
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public JsonNode getData() { return data; }
+    public void setData(JsonNode data) { this.data = data; }
+}
+
+// --- Repository ---
+@Repository
+interface UserForeignTravelRepository extends JpaRepository<UserForeignTravel, UUID> {
+
+    Optional<UserForeignTravel> findByEmail(String email);
+
+    @Query(value = "SELECT jsonb_build_object("
+        + "'traveledLastSevenYears', data->'traveledLastSevenYears',"
+        + "'solelyGovBusinessLastSevenYears', data->'solelyGovBusinessLastSevenYears',"
+        + "'trips', jsonb_agg(trip_elem) ) "
+      + "FROM user_foreign_travel, jsonb_array_elements(data->'trips') AS trip_elem "
+      + "WHERE user_id = CAST(:userId AS uuid) "
+        + "AND trip_elem->> 'fromMonthYear' = :fromMonthYear "
+        + "AND trip_elem->> 'toMonthYear' = :toMonthYear "
+      + "GROUP BY data->'traveledLastSevenYears', data->'solelyGovBusinessLastSevenYears'",
+        nativeQuery = true)
+    Optional<JsonNode> findTripsByDateNative(
+        @Param("userId") UUID userId,
+        @Param("fromMonthYear") String fromMonthYear,
+        @Param("toMonthYear") String toMonthYear
+    );
+}
+
+// --- Service Layer ---
+@Service
+class ForeignTravelService {
+    @Autowired
+    private UserForeignTravelRepository repository;
+
+    public void saveOrUpdate(ForeignTravelRequest request) {
+        UserForeignTravel entity = new UserForeignTravel();
+        entity.setUserId(request.getUserId());
+        entity.setEmail(request.getEmail());
+        entity.setData(request.getForeignTravel());
+        repository.save(entity);
+    }
+
+    public Optional<ForeignTravelRequest> findByUserId(UUID userId) {
+        return repository.findById(userId)
+            .map(entity -> {
+                ForeignTravelRequest req = new ForeignTravelRequest();
+                req.setUserId(entity.getUserId());
+                req.setEmail(entity.getEmail());
+                req.setForeignTravel(entity.getData());
+                return req;
+            });
+    }
+
+    public Optional<ForeignTravelRequest> findByEmail(String email) {
+        return repository.findByEmail(email)
+            .map(entity -> {
+                ForeignTravelRequest req = new ForeignTravelRequest();
+                req.setUserId(entity.getUserId());
+                req.setEmail(entity.getEmail());
+                req.setForeignTravel(entity.getData());
+                return req;
+            });
+    }
+
+    public Optional<JsonNode> findTripsByDate(UUID userId, String fromMonthYear, String toMonthYear) {
+        return repository.findTripsByDateNative(userId, fromMonthYear, toMonthYear);
+    }
+}
+
+// --- REST Controller ---
+@RestController
+@RequestMapping("/api/foreign-travel")
+public class ForeignTravelController {
+
+    @Autowired
+    private ForeignTravelService service;
+
+    @PostMapping
+    public ResponseEntity<Void> createOrUpdate(@RequestBody ForeignTravelRequest request) {
+        service.saveOrUpdate(request);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<ForeignTravelRequest> getByUserId(@PathVariable UUID userId) {
+        return service.findByUserId(userId)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping
+    public ResponseEntity<ForeignTravelRequest> getByEmail(@RequestParam String email) {
+        return service.findByEmail(email)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{userId}/{fromMonthYear}/{toMonthYear}")
+    public ResponseEntity<JsonNode> getTripsByDate(
+        @PathVariable UUID userId,
+        @PathVariable String fromMonthYear,
+        @PathVariable String toMonthYear
+    ) {
+        return service.findTripsByDate(userId, fromMonthYear, toMonthYear)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+}
