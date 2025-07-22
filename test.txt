@@ -1,222 +1,322 @@
 {
-  "userId": "550e8400-e29b-41d4-a716-446655440000",
-  "email": "applicant@example.com",
-  "foreignTravel": {
-    "traveledLastSevenYears": true,
-    "solelyGovBusinessLastSevenYears": false,
-    "trips": [
-      {
-        "country": "Dominican Republic",
-        "fromMonthYear": "2019-10",
-        "toMonthYear": "2019-10",
-        "totalDaysCategory": "1-5",
-        "purposes": [
-          "Tourism"
-        ],
-        "questionedOrDetained": false,
-        "questionedExplanation": null,
-        "policeEncounter": false,
-        "policeExplanation": null,
-        "contactWithForeignIntelligence": false,
-        "contactWithForeignIntelligenceExplanation": null,
-        "counterintelligenceIssue": false,
-        "counterintelligenceIssueExplanation": null,
-        "contactedByExcessiveInterest": false,
-        "contactedByExcessiveInterestExplanation": null,
-        "contactedByClassifiedInfo": false,
-        "contactedByClassifiedInfoExplanation": null,
-        "threatenedOrCoerced": false,
-        "threatenedOrCoercedExplanation": null
-      }
-    ]
-  }
+  "userEmail": "john.doe@example.com",
+  "clearanceLevel": "Top Secret",
+  "steps": [
+    {
+      "name": "application_submitted",
+      "status": "completed",
+      "date": "2025-02-04T10:23:00Z"
+    },
+    {
+      "name": "initiated",
+      "status": "in_progress",
+      "date": "2025-02-26T14:45:00Z"
+    },
+    {
+      "name": "questionnaire_submitted",
+      "status": "pending"
+    },
+    {
+      "name": "review_investigation",
+      "status": "pending"
+    },
+    {
+      "name": "final_review",
+      "status": "pending"
+    },
+    {
+      "name": "completed",
+      "status": "pending"
+    }
+  ],
+  "currentStatus": {
+    "name": "initiated",
+    "date": "2025-02-26T14:45:00Z",
+    "timeInStatusDays": 20,
+    "pendingItems": 42,
+    "pendingItemsDueInDays": 21
+  },
+  "statusHistory": [
+    {
+      "name": "application_submitted",
+      "date": "2025-02-04T10:23:00Z",
+      "description": "Security officer has submitted Top Secret clearance"
+    },
+    {
+      "name": "initiated",
+      "date": "2025-02-26T14:45:00Z",
+      "description": "Application assigned to security specialist"
+    }
+  ],
+  "estimatedTimeline": [
+    {
+      "key": "application_submitted",
+      "label": "Application Submitted",
+      "avgDurationDays": 14,
+      "rangeDays": { "min": 12, "max": 16 }
+    },
+    {
+      "key": "initiated",
+      "label": "Initiated",
+      "avgDurationDays": 21,
+      "rangeDays": { "min": 21, "max": 21 }
+    },
+    {
+      "key": "questionnaire_submitted",
+      "label": "Questionnaire Submitted",
+      "avgDurationDays": null,
+      "rangeDays": null
+    },
+    {
+      "key": "review_investigation",
+      "label": "Review & Investigation",
+      "avgDurationDays": null,
+      "rangeDays": null
+    },
+    {
+      "key": "final_review",
+      "label": "Final Review",
+      "avgDurationDays": null,
+      "rangeDays": null
+    }
+  ]
+}
+----
+
+// ClearanceStatusRequest.java
+package com.example.clearance;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ClearanceStatusRequest {
+    private String email;
+}
+
+-------
+// ClearanceStatusResponse.java
+package com.example.clearance;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+
+@Getter
+@Setter
+public class ClearanceStatusResponse {
+    private String userEmail;
+    private String clearanceLevel;
+    private List<Step> steps;
+    private CurrentStatus currentStatus;
+    private List<StatusHistoryEntry> statusHistory;
+    private List<EstimatedTimelineEntry> estimatedTimeline;
+}
+
+------------
+
+// Step.java
+// Step.java
+package com.example.clearance;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.Instant;
+
+@Getter
+@Setter
+public class Step {
+    private String name;
+    private Status status;      // uses the new enum
+    private Instant date;       // may be null if pending
 }
 
 
 ------------
 
-CREATE TABLE user_foreign_travel (
-  user_id UUID PRIMARY KEY,
-  email TEXT NOT NULL,
-  data JSONB NOT NULL,              -- holds the JSON payload above
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+// CurrentStatus.java
+package com.example.clearance;
 
--- index on email for fast lookups
-CREATE INDEX idx_user_foreign_travel_email
-  ON user_foreign_travel(email);
+import lombok.Getter;
+import lombok.Setter;
 
----------------------------------
+import java.time.Instant;
 
-package com.example.securityclearance;
-
-import java.util.Optional;
-import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.stereotype.Service;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
-
-// --- DTO ---
-public class ForeignTravelRequest {
-    private UUID userId;
-    private String email;
-    private JsonNode foreignTravel;  // raw JSON
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public JsonNode getForeignTravel() { return foreignTravel; }
-    public void setForeignTravel(JsonNode foreignTravel) { this.foreignTravel = foreignTravel; }
+@Getter
+@Setter
+public class CurrentStatus {
+    private String name;
+    private Instant date;
+    private int timeInStatusDays;
+    private int pendingItems;
+    private int pendingItemsDueInDays;
 }
 
-// --- JPA Entity ---
-@Entity
-@Table(name = "user_foreign_travel")
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
-public class UserForeignTravel {
+// StatusHistoryEntry.java
+package com.example.clearance;
 
-    @Id
-    @Column(name = "user_id", columnDefinition = "uuid")
-    private UUID userId;
+import lombok.Getter;
+import lombok.Setter;
 
-    @Column(nullable = false)
-    private String email;
+import java.time.Instant;
 
-    @Type(type = "jsonb")
-    @Column(name = "data", columnDefinition = "jsonb")
-    private JsonNode data;  // stores raw JSONB
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public JsonNode getData() { return data; }
-    public void setData(JsonNode data) { this.data = data; }
+@Getter
+@Setter
+public class StatusHistoryEntry {
+    private String name;
+    private Instant date;
+    private String description;
 }
 
-// --- Repository ---
-@Repository
-interface UserForeignTravelRepository extends JpaRepository<UserForeignTravel, UUID> {
 
-    Optional<UserForeignTravel> findByEmail(String email);
+// EstimatedTimelineEntry.java
+package com.example.clearance;
 
-    @Query(value = "SELECT jsonb_build_object("
-        + "'traveledLastSevenYears', data->'traveledLastSevenYears',"
-        + "'solelyGovBusinessLastSevenYears', data->'solelyGovBusinessLastSevenYears',"
-        + "'trips', jsonb_agg(trip_elem) ) "
-      + "FROM user_foreign_travel, jsonb_array_elements(data->'trips') AS trip_elem "
-      + "WHERE user_id = CAST(:userId AS uuid) "
-        + "AND trip_elem->> 'fromMonthYear' = :fromMonthYear "
-        + "AND trip_elem->> 'toMonthYear' = :toMonthYear "
-      + "GROUP BY data->'traveledLastSevenYears', data->'solelyGovBusinessLastSevenYears'",
-        nativeQuery = true)
-    Optional<JsonNode> findTripsByDateNative(
-        @Param("userId") UUID userId,
-        @Param("fromMonthYear") String fromMonthYear,
-        @Param("toMonthYear") String toMonthYear
-    );
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class EstimatedTimelineEntry {
+    private String key;
+    private String label;
+    private Integer avgDurationDays;
+    private RangeDays rangeDays;
 }
 
-// --- Service Layer ---
-@Service
-class ForeignTravelService {
-    @Autowired
-    private UserForeignTravelRepository repository;
 
-    public void saveOrUpdate(ForeignTravelRequest request) {
-        UserForeignTravel entity = new UserForeignTravel();
-        entity.setUserId(request.getUserId());
-        entity.setEmail(request.getEmail());
-        entity.setData(request.getForeignTravel());
-        repository.save(entity);
-    }
+// RangeDays.java
+package com.example.clearance;
 
-    public Optional<ForeignTravelRequest> findByUserId(UUID userId) {
-        return repository.findById(userId)
-            .map(entity -> {
-                ForeignTravelRequest req = new ForeignTravelRequest();
-                req.setUserId(entity.getUserId());
-                req.setEmail(entity.getEmail());
-                req.setForeignTravel(entity.getData());
-                return req;
-            });
-    }
+import lombok.Getter;
+import lombok.Setter;
 
-    public Optional<ForeignTravelRequest> findByEmail(String email) {
-        return repository.findByEmail(email)
-            .map(entity -> {
-                ForeignTravelRequest req = new ForeignTravelRequest();
-                req.setUserId(entity.getUserId());
-                req.setEmail(entity.getEmail());
-                req.setForeignTravel(entity.getData());
-                return req;
-            });
-    }
-
-    public Optional<JsonNode> findTripsByDate(UUID userId, String fromMonthYear, String toMonthYear) {
-        return repository.findTripsByDateNative(userId, fromMonthYear, toMonthYear);
-    }
+@Getter
+@Setter
+public class RangeDays {
+    private Integer min;
+    private Integer max;
 }
 
-// --- REST Controller ---
+
+// ClearanceController.java
+package com.example.clearance;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.util.Arrays;
+
 @RestController
-@RequestMapping("/api/foreign-travel")
-public class ForeignTravelController {
+@RequestMapping("/api/v1")
+public class ClearanceController {
 
-    @Autowired
-    private ForeignTravelService service;
+    @GetMapping("/clearance-status")
+    public ClearanceStatusResponse getClearanceStatus(@RequestParam("email") String email) {
+        // --- build mock response ---
+        ClearanceStatusResponse resp = new ClearanceStatusResponse();
+        resp.setUserEmail(email);
+        resp.setClearanceLevel("Top Secret");
 
-    @PostMapping
-    public ResponseEntity<Void> createOrUpdate(@RequestBody ForeignTravelRequest request) {
-        service.saveOrUpdate(request);
-        return new ResponseEntity<>(HttpStatus.CREATED);
-    }
+        // steps
+        Step s1 = new Step();
+        s1.setName("application_submitted");
+        s1.setStatus("completed");
+        s1.setDate(Instant.parse("2025-02-04T10:23:00Z"));
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<ForeignTravelRequest> getByUserId(@PathVariable UUID userId) {
-        return service.findByUserId(userId)
-            .map(ResponseEntity::ok)
-            .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+        Step s2 = new Step();
+        s2.setName("initiated");
+        s2.setStatus("in_progress");
+        s2.setDate(Instant.parse("2025-02-26T14:45:00Z"));
 
-    @GetMapping
-    public ResponseEntity<ForeignTravelRequest> getByEmail(@RequestParam String email) {
-        return service.findByEmail(email)
-            .map(ResponseEntity::ok)
-            .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+        Step s3 = new Step();
+        s3.setName("questionnaire_submitted");
+        s3.setStatus("pending");
+        // no date
 
-    @GetMapping("/{userId}/{fromMonthYear}/{toMonthYear}")
-    public ResponseEntity<JsonNode> getTripsByDate(
-        @PathVariable UUID userId,
-        @PathVariable String fromMonthYear,
-        @PathVariable String toMonthYear
-    ) {
-        return service.findTripsByDate(userId, fromMonthYear, toMonthYear)
-            .map(ResponseEntity::ok)
-            .orElseGet(() -> ResponseEntity.notFound().build());
+        resp.setSteps(Arrays.asList(s1, s2, s3));
+
+        // currentStatus
+        CurrentStatus cs = new CurrentStatus();
+        cs.setName("initiated");
+        cs.setDate(Instant.parse("2025-02-26T14:45:00Z"));
+        cs.setTimeInStatusDays(20);
+        cs.setPendingItems(42);
+        cs.setPendingItemsDueInDays(21);
+        resp.setCurrentStatus(cs);
+
+        // statusHistory
+        StatusHistoryEntry h1 = new StatusHistoryEntry();
+        h1.setName("application_submitted");
+        h1.setDate(Instant.parse("2025-02-04T10:23:00Z"));
+        h1.setDescription("Security officer has submitted Top Secret clearance");
+
+        StatusHistoryEntry h2 = new StatusHistoryEntry();
+        h2.setName("initiated");
+        h2.setDate(Instant.parse("2025-02-26T14:45:00Z"));
+        h2.setDescription("Application assigned to security specialist");
+
+        resp.setStatusHistory(Arrays.asList(h1, h2));
+
+        // estimatedTimeline (optional—for UI you may omit or fill similarly)
+        EstimatedTimelineEntry e1 = new EstimatedTimelineEntry();
+        e1.setKey("application_submitted");
+        e1.setLabel("Application Submitted");
+        e1.setAvgDurationDays(14);
+        RangeDays r1 = new RangeDays();
+        r1.setMin(12);
+        r1.setMax(16);
+        e1.setRangeDays(r1);
+
+        EstimatedTimelineEntry e2 = new EstimatedTimelineEntry();
+        e2.setKey("initiated");
+        e2.setLabel("Initiated");
+        e2.setAvgDurationDays(21);
+        RangeDays r2 = new RangeDays();
+        r2.setMin(21);
+        r2.setMax(21);
+        e2.setRangeDays(r2);
+
+        resp.setEstimatedTimeline(Arrays.asList(e1, e2));
+
+        return resp;
     }
 }
+
+
+// Status.java
+package com.example.clearance;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
+public enum Status {
+    COMPLETED("completed"),
+    IN_PROGRESS("in_progress"),
+    PENDING("pending");
+
+    private final String value;
+    Status(String value) { this.value = value; }
+
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
+
+    @JsonCreator
+    public static Status fromValue(String value) {
+        for (Status s : values()) {
+            if (s.value.equalsIgnoreCase(value)) {
+                return s;
+            }
+        }
+        throw new IllegalArgumentException("Unknown status: " + value);
+    }
+}
+
+
