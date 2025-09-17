@@ -1,5 +1,3 @@
-
-
 /**
  * Provides custom ordering:
  * - Primary sort by titleCode alphabetically for non-DEFAULT templates
@@ -14,11 +12,6 @@ public class ClaimStatusDetailsComparator implements Comparator<ClaimStatusDetai
         String templateId1 = d1.getTemplateId();
         String templateId2 = d2.getTemplateId();
         
-        // Handle null cases for templateId
-        if (templateId1 == null && templateId2 == null) return compareByTitleCode(d1, d2);
-        if (templateId1 == null) return -1; // null goes before DEFAULT
-        if (templateId2 == null) return 1;
-        
         // Check if either is DEFAULT template
         boolean isDefault1 = DEFAULT_TEMPLATE.equals(templateId1);
         boolean isDefault2 = DEFAULT_TEMPLATE.equals(templateId2);
@@ -30,7 +23,7 @@ public class ClaimStatusDetailsComparator implements Comparator<ClaimStatusDetai
         if (isDefault1) return 1;  // d1 is DEFAULT, goes after d2
         if (isDefault2) return -1; // d2 is DEFAULT, goes after d1
         
-        // Both are non-DEFAULT templates - sort by titleCode
+        // Both are non-DEFAULT templates (including nulls) - sort by titleCode
         return compareByTitleCode(d1, d2);
     }
     
@@ -69,10 +62,7 @@ public class ClaimStatusDetailsComparator implements Comparator<ClaimStatusDetai
         }
     }
 }
-
-
-------
-
+-------
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -119,9 +109,9 @@ public class ClaimStatusDetailsComparatorTest {
     @DisplayName("Should place DEFAULT templates at the bottom")
     void testDefaultTemplatesGoToBottom() {
         // Arrange
-        testData.add(createClaim("DEFAULT", "T2"));
-        testData.add(createClaim("TEMPLATE_A", "T18"));
         testData.add(createClaim("DEFAULT", "T16"));
+        testData.add(createClaim("TEMPLATE_A", "T18"));
+        testData.add(createClaim("DEFAULT", "T2"));
         testData.add(createClaim("TEMPLATE_B", "T2"));
         
         // Act
@@ -151,7 +141,7 @@ public class ClaimStatusDetailsComparatorTest {
         // Act
         Collections.sort(testData, comparator);
         
-        // Assert - null templateId should be treated as non-DEFAULT
+        // Assert - null templateId should be treated as non-DEFAULT and sorted by titleCode
         assertEquals(null, testData.get(0).getTemplateId());
         assertEquals("T16", testData.get(0).getTitleCode());
         assertEquals("TEMPLATE_A", testData.get(1).getTemplateId());
@@ -208,7 +198,7 @@ public class ClaimStatusDetailsComparatorTest {
         // Act
         Collections.sort(testData, comparator);
         
-        // Assert
+        // Assert - null templateId is non-DEFAULT, but null titleCode goes to end within non-DEFAULT group
         assertEquals("TEMPLATE_A", testData.get(0).getTemplateId());
         assertEquals("T16", testData.get(0).getTitleCode());
         assertEquals(null, testData.get(1).getTemplateId());
@@ -275,9 +265,10 @@ public class ClaimStatusDetailsComparatorTest {
         Collections.sort(testData, comparator);
         
         // Assert - Verify overall structure
-        // Non-DEFAULT templates should be first, sorted by titleCode
+        // Non-DEFAULT templates should be first (including nulls), sorted by titleCode
         // DEFAULT templates should be last
         
+        // Find where DEFAULT templates start
         int defaultStartIndex = -1;
         for (int i = 0; i < testData.size(); i++) {
             if ("DEFAULT".equals(testData.get(i).getTemplateId())) {
@@ -286,14 +277,33 @@ public class ClaimStatusDetailsComparatorTest {
             }
         }
         
-        // Ensure DEFAULT templates are at the end
+        // Ensure DEFAULT templates are at the end and there are some non-DEFAULT items first
         assertTrue(defaultStartIndex > 0, "DEFAULT templates should not be at the beginning");
         
-        // Verify all remaining items are DEFAULT
+        // Verify all items from defaultStartIndex onwards are DEFAULT
         for (int i = defaultStartIndex; i < testData.size(); i++) {
-            assertTrue("DEFAULT".equals(testData.get(i).getTemplateId()) || 
-                      testData.get(i).getTemplateId() == null, 
-                      "All items after first DEFAULT should be DEFAULT or null");
+            assertEquals("DEFAULT", testData.get(i).getTemplateId(), 
+                        "All items after first DEFAULT should be DEFAULT templates");
         }
+        
+        // Verify non-DEFAULT items are before DEFAULT items
+        for (int i = 0; i < defaultStartIndex; i++) {
+            assertNotEquals("DEFAULT", testData.get(i).getTemplateId(), 
+                           "Non-DEFAULT items should come before DEFAULT items");
+        }
+        
+        // Additional verification: check that T2 comes before T16 in non-DEFAULT section
+        boolean foundT2 = false;
+        boolean foundT16AfterT2 = false;
+        for (int i = 0; i < defaultStartIndex; i++) {
+            String titleCode = testData.get(i).getTitleCode();
+            if ("T2".equals(titleCode)) {
+                foundT2 = true;
+            } else if ("T16".equals(titleCode) && foundT2) {
+                foundT16AfterT2 = true;
+                break;
+            }
+        }
+        assertTrue(foundT2, "Should find T2 in non-DEFAULT section");
     }
 }
