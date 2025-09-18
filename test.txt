@@ -1,1 +1,174 @@
+database/02_update_hub_user_.sql
+
+Begin;
+
+alter table hub_user
+add column sp_global_id VARCHAR(50);
+
+Commit;
+
+----------------
+
+package nbis.gov.hub.authsvc.api;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import nbis.gov.hub.authsvc.service.UserPermissionsSvc;
+import nbis.gov.hub.authsvc.service.security.JwtTokenUtil;
+import reactor.core.publisher.Mono;
+
+@RestController
+@Slf4j
+@Tag(name = "Authorization Service", description = "Endpoints for Authorization Service")
+public class HubAuthAPIController {
+
+	@Autowired
+	private UserPermissionsSvc userPermissionSvc;
+	
+	@Autowired
+	private JwtTokenUtil jwtTokenUtil;
+
+	/**
+	 * Retrieve API token based on OAuth token subject
+	 * @param appName
+	 * @param principal
+	 * @param req
+	 * @return
+	 */
+	@GetMapping("/jwt/{appName}")
+	@Operation(summary = "Generate JWT token for an app", description = "Generate user specific JWT token for an app")
+	public Mono<String> retrieveAPIToken(@PathVariable("appName") String appName, @AuthenticationPrincipal Jwt principal,
+			HttpServletRequest req) {
+		log.debug("The oauth token is: {}", principal.getTokenValue()); 
+
+		List<String> ups = userPermissionSvc.getUserRolesForApp(appName, principal.getSubject());
+		String description = userPermissionSvc.getDescriptionForUser(principal.getSubject());
+		
+		String entitlementToken = jwtTokenUtil.generateEntitlementToken(description, ups);
+		log.info("jwt bearer token is generated for resource: {}", appName);
+		log.debug("jwt bearer token is: {}", entitlementToken);
+		return Mono.just(entitlementToken);
+	}
+
+	/**
+	 * Retrieve allowed Apps for user
+	 * @param principal
+	 * @param req
+	 * @return
+	 */
+	@RequestMapping(value = "/dashboard", method = {RequestMethod.GET, RequestMethod.POST})
+	@Operation(summary = "Get allowed apps for dasbhoard", description = "Get allowed apps for dasbhoard")
+	public Mono<String> retrieveAllowedApps(@AuthenticationPrincipal Jwt principal,
+			HttpServletRequest req) {
+
+		List<String> ups = userPermissionSvc.getAllowedAppsForUser(principal.getSubject());
+		log.info("Allowed apps for user: {}", principal.getSubject());
+		String allowedApps = "[]";
+		try {
+			allowedApps =  new ObjectMapper().writeValueAsString(ups);
+		} catch (JsonProcessingException e) {
+			log.error("Error in getting allowed apps", e);
+		}
+		log.debug("allowed apps for user {}: {}", principal.getSubject(), allowedApps);
+		return Mono.just(String.format("{\"allowed\": %s}", allowedApps));
+	}
+}
+
+-----------------------package nbis.gov.hub.authsvc.entities;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "hub_user")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class HubUser {
+
+    @Id
+    @Column(name = "hub_user_id", nullable = false)
+    private UUID hubUserId;
+
+    @Column(name = "idp_uuid", nullable = false)
+    private UUID idpUuid;
+
+    @Column(name = "sp_global_id", length = 50)
+    private String spGlobalId;    
+
+    @Column(name = "description", length = 250)
+    private String description;
+
+    @Column(name = "created_date", nullable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = "update_date", nullable = true)
+    private LocalDateTime updateDate;
+}
+
+--------------------
+
+package nbis.gov.hub.authsvc.service;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
+import nbis.gov.hub.authsvc.repos.HubUserRepository;
+import nbis.gov.hub.authsvc.repos.RoleRepository;
+
+@Service
+@Slf4j
+public class UserPermissionsSvc {
+	
+	@Autowired
+	RoleRepository roleRepo;
+
+	@Autowired
+	HubUserRepository hubUserRepo;
+	
+	public List<String> getUserRolesForApp(String app, String idpId) {
+		log.info("Getting roles for user: {} and app: {}", idpId, app);
+		return roleRepo.findUserRolesForApp(app, UUID.fromString(idpId)); 
+	}
+	
+	public List<String> getAllowedAppsForUser(String idpId) {
+		log.info("Getting allowed apps for user: {}", idpId);
+		return roleRepo.findAllowedAppsForUser(UUID.fromString(idpId)); 
+	} 
+
+	public String getDescriptionForUser(String idpId) {
+		log.info("Getting description for user: {}", idpId);
+		return hubUserRepo.findByIdpUuid(UUID.fromString(idpId)).getDescription(); 
+	}
+}
+
+
 
