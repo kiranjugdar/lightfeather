@@ -1,43 +1,84 @@
-@SuppressWarnings("null")
-public void populateStateNameForHearingDateIfAvailable(ClaimDetails claimDetails) {
-    // Get the fillables map from claim details parameters
-    Map<String, Object> fillablesMap = claimDetails.getParameters();
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
     
-    Optional.ofNullable(fillablesMap)
-        .filter(map -> !map.isEmpty())
-        .map(map -> map.get(HEARING_ADDRESS))
-        .filter(obj -> obj instanceof Map)
-        .map(obj -> (Map<String, Object>) obj)
-        .ifPresent(hearingAddress -> {
-            // Extract state or province code
-            String stateOrProvince = (String) hearingAddress.get(STATEPROVINCE);
-            
-            if (stateOrProvince != null && !stateOrProvince.isEmpty()) {
-                try {
-                    // Fetch state territory info
-                    StateTerritoryGRTInfoEntity stateTerritoryGRTInfoEntity = 
-                        statesListService.getStateTerritoryGRTInfo(stateOrProvince);
-                    
-                    if (stateTerritoryGRTInfoEntity != null) {
-                        String stateName = stateTerritoryGRTInfoEntity.getPublicAI();
-                        
-                        // Update the hearing address map with the state name
-                        hearingAddress.put("stateName", stateName);
-                        
-                        // Update the fillables map back to claim details
-                        fillablesMap.put(HEARING_ADDRESS, hearingAddress);
-                        
-                        log.debug("Setting state name for claimDetails {}: {}", 
-                                claimDetails.getId(), stateName);
-                    } else {
-                        log.warn("No state territory info found for state code: {}", stateOrProvince);
-                    }
-                } catch (Exception e) {
-                    log.error("Error fetching state name for state code: {}", stateOrProvince, e);
-                }
-            } else {
-                log.debug("State or province code is null or empty for claimDetails: {}", 
-                        claimDetails.getId());
-            }
-        });
-}
+    <property name="LOG_LEVEL_PATTERN" value="%d{ISO8601, America/New_York}[%X{processId}][%X{requestId}][%X{Caller}]"/>
+    
+    <springProfile name="local">
+        <appender name="STDOUT-LOCAL" class="ch.qos.logback.core.ConsoleAppender">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>${LOG_LEVEL_PATTERN}</pattern>
+            </layout>
+        </appender>
+        
+        <property name="LOG_FILE" value="c:/Logs/tele-aps-api-logging.log" />
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS, America/New_York} [%thread][%X{IVRProcessID}][%X{IVRRequestID}][%X{IVRProcessName}]</pattern>
+            </encoder>
+            <file>${LOG_FILE}</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}%i.log</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>100</maxHistory>
+            </rollingPolicy>
+        </appender>
+        
+        <logger name="gov.ssa" level="TRACE" additivity="false">
+            <appender-ref ref="STDOUT-LOCAL" />
+            <appender-ref ref="FILE" />
+        </logger>
+    </springProfile>
+    
+    <!-- This will set JSON logging in any other environment than local. -->
+    <springProfile name="!local">
+        <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+            <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                <level>INFO</level> <!-- Changed from ERROR to INFO -->
+                <onMatch>ACCEPT</onMatch>
+                <onMismatch>DENY</onMismatch>
+            </filter>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <timeZone>US/Eastern</timeZone>
+                <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSS(zzz)</timestampPattern>
+                <includeContext>false</includeContext>
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerThrowable>full</maxDepthPerThrowable>
+                    <maxLength>full</maxLength>
+                    <exclude>sun\.reflect\..*\.invoke.*</exclude>
+                    <exclude>net\.sf\.cglib\.proxy\.MethodProxy\.invoke</exclude>
+                    <rootCauseFirst>true</rootCauseFirst>
+                    <inlineHash>true</inlineHash>
+                </throwableConverter>
+            </encoder>
+        </appender>
+        
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>${LOG_LEVEL_PATTERN}</pattern>
+            </layout>
+        </appender>
+        
+        <!-- Add specific logger for claim-status-interpreter library -->
+        <logger name="gov.ssa.claimstatusinterpreter" level="DEBUG" additivity="false">
+            <appender-ref ref="consoleAppender" />
+        </logger>
+        
+        <!-- More specific logger for ScenarioParameters class -->
+        <logger name="gov.ssa.claimstatusinterpreter.ScenarioParameters" level="DEBUG" additivity="false">
+            <appender-ref ref="consoleAppender" />
+        </logger>
+        
+        <logger name="jsonLogger" additivity="false" level="INFO">
+            <appender-ref ref="consoleAppender" />
+        </logger>
+    </springProfile>
+    
+    <root level="ERROR">
+        <appender-ref ref="consoleAppender" />
+    </root>
+    
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+    
+</configuration>
