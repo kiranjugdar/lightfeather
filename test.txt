@@ -1,2 +1,1 @@
-<!-- Add this right before </configuration> -->
-<logger name="gov.ssa.claimstatusinterpreter" level="DEBUG" additivity="true" />
+
