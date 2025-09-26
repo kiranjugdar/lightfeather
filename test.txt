@@ -1,318 +1,221 @@
+# Complete List of Changes to Fix React Router Issues
 
-666.ea0ce8c66dc082fa8705.chunk.js:1 App running with ENV = dev
-666.ea0ce8c66dc082fa8705.chunk.js:1 Fetching user
-666.ea0ce8c66dc082fa8705.chunk.js:1 Fetching user
-666.ea0ce8c66dc082fa8705.chunk.js:1 Raw response json: Object
-666.ea0ce8c66dc082fa8705.chunk.js:1 Raw response json: Object
-666.ea0ce8c66dc082fa8705.chunk.js:1 Checking if remote exists on window: status_tracker_ui undefined
-666.ea0ce8c66dc082fa8705.chunk.js:1 Fetching user
-666.ea0ce8c66dc082fa8705.chunk.js:1 Remote script loaded: /status-tracker/remoteEntry.js Object
-666.ea0ce8c66dc082fa8705.chunk.js:1 Initializing sharing for remote: status_tracker_ui
-666.ea0ce8c66dc082fa8705.chunk.js:1 Container after init: Object
-666.ea0ce8c66dc082fa8705.chunk.js:1 Raw response json: Object
-666.ea0ce8c66dc082fa8705.chunk.js:1 Checking if remote exists on window: status_tracker_ui Object
-666.ea0ce8c66dc082fa8705.chunk.js:1 Remote already loaded: status_tracker_ui
-666.ea0ce8c66dc082fa8705.chunk.js:1 Initializing sharing for remote: status_tracker_ui
-666.ea0ce8c66dc082fa8705.chunk.js:1 Container after init: Object
-648.cae62d7c3481075d343a.js:2 Uncaught Error
-    at d (648.cae62d7c3481075d343a.js:2:4122)
-    at 648.cae62d7c3481075d343a.js:2:55248
-    at yt (648.cae62d7c3481075d343a.js:2:55747)
-    at u (577.61c9e5945b32d1f60687.js:2:276)
-    at Tl (735.b4f5013cd57315b032bc.chunk.js:2:203007)
-    at Vi (735.b4f5013cd57315b032bc.chunk.js:2:229542)
-    at Gi (735.b4f5013cd57315b032bc.chunk.js:2:239913)
-    at Gc (735.b4f5013cd57315b032bc.chunk.js:2:277147)
-    at Kc (735.b4f5013cd57315b032bc.chunk.js:2:277076)
-    at qc (735.b4f5013cd57315b032bc.chunk.js:2:276918)
--------------
-/*! For license information please see 648.cae62d7c3481075d343a.js.LICENSE.txt */
-"use strict";
-(self.webpackChunksecurity_clearance_tracker = self.webpackChunksecurity_clearance_tracker || []).push([[648], {
-    648: (e, t, r) => {
-        r.r(t),
-        r.d(t, {
-            AbortedDeferredError: () => Y,
-            Await: () => nr,
-            BrowserRouter: () => Nr,
-            Form: () => $r,
-            HashRouter: () => Br,
-            Link: () => Wr,
-            MemoryRouter: () => Gt,
-            NavLink: () => Kr,
-            Navigate: () => Qt,
-            NavigationType: () => n,
-            Outlet: () => Zt,
-            Route: () => er,
-            Router: () => tr,
-            RouterProvider: () => jr,
-            Routes: () => rr,
-            ScrollRestoration: () => Vr,
-            UNSAFE_DataRouterContext: () => at,
-            UNSAFE_DataRouterStateContext: () => ot,
-            UNSAFE_ErrorResponseImpl: () => re,
-            UNSAFE_FetchersContext: () => kr,
-            UNSAFE_LocationContext: () => lt,
-            UNSAFE_NavigationContext: () => st,
-            UNSAFE_RouteContext: () => ut,
-            UNSAFE_ViewTransitionContext: () => Lr,
-            UNSAFE_useRouteId: () => jt,
-            UNSAFE_useScrollRestoration: () => ln,
-            createBrowserRouter: () => xr,
-            createHashRouter: () => Dr,
-            createMemoryRouter: () => dr,
-            createPath: () => m,
-            createRoutesFromChildren: () => lr,
-            createRoutesFromElements: () => lr,
-            createSearchParams: () => yr,
-            defer: () => Q,
-            generatePath: () => j,
-            isRouteErrorResponse: () => ne,
-            json: () => q,
-            matchPath: () => O,
-            matchRoutes: () => S,
-            parsePath: () => v,
-            redirect: () => Z,
-            redirectDocument: () => ee,
-            renderMatches: () => ur,
-            replace: () => te,
-            resolvePath: () => B,
-            unstable_HistoryRouter: () => Ir,
-            unstable_usePrompt: () => cn,
-            useActionData: () => zt,
-            useAsyncError: () => Kt,
-            useAsyncValue: () => Wt,
-            useBeforeUnload: () => un,
-            useBlocker: () => Vt,
-            useFetcher: () => nn,
-            useFetchers: () => an,
-            useFormAction: () => rn,
-            useHref: () => dt,
-            useInRouterContext: () => ht,
-            useLinkClickHandler: () => Gr,
-            useLoaderData: () => Bt,
-            useLocation: () => ft,
-            useMatch: () => mt,
-            useMatches: () => Nt,
-            useNavigate: () => yt,
-            useNavigation: () => Ot,
-            useNavigationType: () => pt,
-            useOutlet: () => wt,
-            useOutletContext: () => bt,
-            useParams: () => St,
-            useResolvedPath: () => Et,
-            useRevalidator: () => Ft,
-            useRouteError: () => Ht,
-            useRouteLoaderData: () => It,
-            useRoutes: () => Rt,
-            useSearchParams: () => Qr,
-            useSubmit: () => tn,
-            useViewTransitionState: () => dn
-        });
-        var n, a = r(884), o = r(486);
-        function i() {
-            return i = Object.assign ? Object.assign.bind() : function(e) {
-                for (var t = 1; t < arguments.length; t++) {
-                    var r = arguments[t];
-                    for (var n in r)
-                        Object.prototype.hasOwnProperty.call(r, n) && (e[n] = r[n])
-                }
-                return e
-            }
-            ,
-            i.apply(this, arguments)
-        }
-        !function(e) {
-            e.Pop = "POP",
-            e.Push = "PUSH",
-            e.Replace = "REPLACE"
-        }(n || (n = {}));
-        const s = "popstate";
-        function l(e) {
-            void 0 === e && (e = {});
-            let t, {initialEntries: r=["/"], initialIndex: a, v5Compat: o=!1} = e;
-            t = r.map( (e, t) => d(e, "string" == typeof e ? null : e.state, 0 === t ? "default" : void 0));
-            let i = u(null == a ? t.length - 1 : a)
-              , s = n.Pop
-              , l = null;
-            function u(e) {
-                return Math.min(Math.max(e, 0), t.length - 1)
-            }
-            function c() {
-                return t[i]
-            }
-            function d(e, r, n) {
-                void 0 === r && (r = null);
-                let a = p(t ? c().pathname : "/", e, r, n);
-                return h("/" === a.pathname.charAt(0), "relative pathnames are not supported in memory history: " + JSON.stringify(e)),
-                a
-            }
-            function f(e) {
-                return "string" == typeof e ? e : m(e)
-            }
-            return {
-                get index() {
-                    return i
-                },
-                get action() {
-                    return s
-                },
-                get location() {
-                    return c()
-                },
-                createHref: f,
-                createURL: e => new URL(f(e),"http://localhost"),
-                encodeLocation(e) {
-                    let t = "string" == typeof e ? v(e) : e;
-                    return {
-                        pathname: t.pathname || "",
-                        search: t.search || "",
-                        hash: t.hash || ""
-                    }
-                },
-                push(e, r) {
-                    s = n.Push;
-                    let a = d(e, r);
-                    i += 1,
-                    t.splice(i, t.length, a),
-                    o && l && l({
-                        action: s,
-                        location: a,
-                        delta: 1
-                    })
-                },
-                replace(e, r) {
-                    s = n.Replace;
-                    let a = d(e, r);
-                    t[i] = a,
-                    o && l && l({
-                        action: s,
-                        location: a,
-                        delta: 0
-                    })
-                },
-                go(e) {
-                    s = n.Pop;
-                    let r = u(i + e)
-                      , a = t[r];
-                    i = r,
-                    l && l({
-                        action: s,
-                        location: a,
-                        delta: e
-                    })
-                },
-                listen: e => (l = e,
-                () => {
-                    l = null
-                }
-                )
-            }
-        }
-        function u(e) {
-            return void 0 === e && (e = {}),
-            y(function(e, t) {
-                let {pathname: r, search: n, hash: a} = e.location;
-                return p("", {
-                    pathname: r,
-                    search: n,
-                    hash: a
-                }, t.state && t.state.usr || null, t.state && t.state.key || "default")
-            }, function(e, t) {
-                return "string" == typeof t ? t : m(t)
-            }, null, e)
-        }
-        function c(e) {
-            return void 0 === e && (e = {}),
-            y(function(e, t) {
-                let {pathname: r="/", search: n="", hash: a=""} = v(e.location.hash.substr(1));
-                return r.startsWith("/") || r.startsWith(".") || (r = "/" + r),
-                p("", {
-                    pathname: r,
-                    search: n,
-                    hash: a
-                }, t.state && t.state.usr || null, t.state && t.state.key || "default")
-            }, function(e, t) {
-                let r = e.document.querySelector("base")
-                  , n = "";
-                if (r && r.getAttribute("href")) {
-                    let t = e.location.href
-                      , r = t.indexOf("#");
-                    n = -1 === r ? t : t.slice(0, r)
-                }
-                return n + "#" + ("string" == typeof t ? t : m(t))
-            }, function(e, t) {
-                h("/" === e.pathname.charAt(0), "relative pathnames are not supported in hash history.push(" + JSON.stringify(t) + ")")
-            }, e)
-        }
-        function d(e, t) {
-            if (!1 === e || null == e)
-                throw new Error(t)
-        }
+## 1. Update `public/index.html`
+
+**Current:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Clearance Tracker</title>
+    <meta name="description" content="Security Clearance Tracker Application">
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
+```
+
+**Updated:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Clearance Tracker</title>
+    <meta name="description" content="Security Clearance Tracker Application">
+    <base href="/status-tracker/">
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
+```
+
+**Change:** Added `<base href="/status-tracker/">` tag
+
+---
+
+## 2. Update `src/App.tsx`
+
+**Current:**
+```typescript
+import React, { useEffect } from "react";
+import { HeaderBar } from "./components/HeaderBar";
+import MyCases from "./components/MyCases";
+import CaseDetails from "./components/CaseDetails";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import "./styles/globals.css";
+
+declare let __webpack_public_path__: string;
+const BRAND_BLUE = "#267AAD";
+
+const App: React.FC = () => {
+  const navigate = useNavigate();
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+  };
+  useEffect(() => {
+    const basePath = __webpack_public_path__;
+    console.log("Base path:", basePath);
+  }, []);
+  
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <HeaderBar />
+      <section style={{ background: "#eef2f7" }} className="w-full">
+        <div className="max-w-6xl mx-auto px-6 py-6">
+          <button onClick={handleBack} className="inline-flex items-center gap-3" aria-label="Go back" style={{ color: BRAND_BLUE, fontWeight: 700, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={BRAND_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <span style={{ textDecoration: "underline" }}>Back</span>
+          </button>
+        </div>
+      </section>
+      <main className="p-6 max-w-6xl mx-auto">
+        <Routes>
+          <Route path="/" element={<MyCases />} />
+          <Route path="case/:caseId" element={<CaseDetails />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+};
+
+export default App;
+```
+
+**Updated:**
+```typescript
+import React, { useEffect } from "react";
+import { HeaderBar } from "./components/HeaderBar";
+import MyCases from "./components/MyCases";
+import CaseDetails from "./components/CaseDetails";
+import { Routes, Route, Navigate, useNavigate, BrowserRouter } from "react-router-dom";
+import "./styles/globals.css";
+
+declare let __webpack_public_path__: string;
+const BRAND_BLUE = "#267AAD";
+
+// Internal App component without Router
+const AppContent: React.FC = () => {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+  };
+
+  useEffect(() => {
+    try {
+      const basePath = typeof __webpack_public_path__ !== 'undefined' ? __webpack_public_path__ : '/status-tracker/';
+      console.log("Base path:", basePath);
+      console.log("Current location:", window.location.pathname);
+      console.log("Current href:", window.location.href);
+    } catch (error) {
+      console.error("Error accessing webpack public path:", error);
+    }
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <HeaderBar />
+      <section style={{ background: "#eef2f7" }} className="w-full">
+        <div className="max-w-6xl mx-auto px-6 py-6">
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center gap-3"
+            aria-label="Go back"
+            style={{
+              color: BRAND_BLUE,
+              fontWeight: 700,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={BRAND_BLUE}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <span style={{ textDecoration: "underline" }}>Back</span>
+          </button>
+        </div>
+      </section>
+      <main className="p-6 max-w-6xl mx-auto">
+        <Routes>
+          <Route path="/" element={<MyCases />} />
+          <Route path="/case/:caseId" element={<CaseDetails />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+};
+
+// Main App component with Router
+const App: React.FC = () => {
+  // Determine basename based on environment and webpack config
+  const getBasename = () => {
+    try {
+      // Check if we're in production and have a specific base path
+      if (process.env.NODE_ENV === 'production') {
+        return '/status-tracker';
+      }
       
-
---------------
-ngnix.conf
---------------
-server {
-    listen 8080;
-    server_name localhost;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Handle client-side routing (SPA) only at root
-    location = / {
-        try_files $uri $uri/ /index.html;
+      // For development, also use the same base path for consistency
+      return '/status-tracker';
+    } catch (error) {
+      console.error("Error determining basename:", error);
+      return '/status-tracker';
     }
+  };
 
-    # Handle all other paths (including rewritten ones from /status-tracker/)
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+  const basename = getBasename();
+  console.log("App basename:", basename);
 
-    # Serve the app under /status-tracker/ context
-    location = /status-tracker {
-        return 301 /status-tracker/;
-    }
+  return (
+    <BrowserRouter basename={basename}>
+      <AppContent />
+    </BrowserRouter>
+  );
+};
 
-    location ~ ^/status-tracker/(.*)$ {
-        # Strip base path so static assets resolve from doc root
-        try_files /$1 /$1/ /index.html;
-    }
+export default App;
+```
 
-    # Handle legacy /security-tracker/ path for backward compatibility
-    location = /security-tracker {
-        return 301 /status-tracker/;
-    }
+**Changes:**
+- Added `BrowserRouter` import
+- Split component into `AppContent` and `App`
+- Added `BrowserRouter` wrapper with `basename="/status-tracker"`
+- Enhanced error handling and logging
+- Fixed route path: `case/:caseId` → `/case/:caseId`
 
-    location /security-tracker/ {
-        # Redirect legacy path to new path
-        return 301 /status-tracker/;
-    }
+---
 
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
+## 3. Update `webpack.config.js`
 
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+**Current publicPath:**
+```javascript
+publicPath: 'auto'
+```
 
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private auth;
-    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss;
-}
---------------
-webpack.config.conf
---------------
+**Updated:**
+```javascript
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -321,7 +224,6 @@ const { ModuleFederationPlugin } = require('webpack').container;
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
-  // Serve the app under a sub-path context for dev server
   const basePath = '/status-tracker/';
 
   return {
@@ -330,8 +232,8 @@ module.exports = (env, argv) => {
       path: path.resolve(__dirname, 'dist'),
       filename: isProduction ? '[name].[contenthash].js' : '[name].js',
       clean: true,
-      // Ensure assets are referenced from the sub-path
-      publicPath: 'auto'
+      // Fix: Use explicit publicPath instead of 'auto'
+      publicPath: isProduction ? basePath : basePath
     },
     resolve: {
       extensions: ['.tsx', '.ts', '.js', '.jsx'],
@@ -375,9 +277,9 @@ module.exports = (env, argv) => {
           './App': './src/App.tsx',
         },
         shared: {
-          react: { singleton: true, requiredVersion: false },
-          'react-dom': { singleton: true, requiredVersion: false },
-          "react-router-dom": { singleton: true, requiredVersion: false },
+          react: { singleton: true, requiredVersion: false, eager: true },
+          'react-dom': { singleton: true, requiredVersion: false, eager: true },
+          "react-router-dom": { singleton: true, requiredVersion: false, eager: true },
         },
       }),
       new HtmlWebpackPlugin({
@@ -390,7 +292,7 @@ module.exports = (env, argv) => {
             from: 'public',
             to: '.',
             globOptions: {
-              ignore: ['**/index.html'], // Don't copy index.html since HtmlWebpackPlugin handles it
+              ignore: ['**/index.html'],
             },
           },
         ],
@@ -406,10 +308,6 @@ module.exports = (env, argv) => {
     devServer: {
       static: {
         directory: path.join(__dirname, 'public'),
-        publicPath: basePath,
-      },
-      devMiddleware: {
-        publicPath: basePath,
       },
       compress: true,
       port: 3000,
@@ -420,147 +318,234 @@ module.exports = (env, argv) => {
         'Access-Control-Allow-Headers':
           'X-Requested-With, content-type, Authorization',
       },
-      // Serve SPA for root and for any /security-tracker/* path
       historyApiFallback: {
+        index: basePath,
         disableDotRule: true,
         rewrites: [
-          { from: /^\/$/, to: basePath },
-          { from: /^\/status-tracker(\/.*)?$/, to: basePath },
+          { from: /^\/status-tracker/, to: basePath + 'index.html' },
         ],
       },
     },
   };
 };
-----
-index.html
+```
+
+**Changes:**
+- Changed `publicPath: 'auto'` → `publicPath: basePath`
+- Added `eager: true` to shared dependencies
+- Updated `devServer.historyApiFallback` configuration
+- Removed conflicting `static.publicPath` and `devMiddleware.publicPath`
+
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Clearance Tracker</title>
-    <meta name="description" content="Security Clearance Tracker Application">
-</head>
-<body>
-    <div id="root"></div>
-</body>
-</html>
+## 4. Update `nginx.conf`
+
+**Replace entire current config with:**
+```nginx
+server {
+    listen 8080;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Handle legacy /security-tracker/ redirect first
+    location /security-tracker {
+        return 301 /status-tracker$request_uri;
+    }
+
+    # Handle /status-tracker/ and its sub-paths
+    location /status-tracker {
+        # Try to serve the file directly, then fallback to index.html for SPA routing
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Root redirect to status-tracker
+    location = / {
+        return 301 /status-tracker/;
+    }
+
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        # Allow CORS for module federation
+        add_header Access-Control-Allow-Origin "*";
+    }
+
+    # Special handling for remoteEntry.js (Module Federation)
+    location ~* /remoteEntry\.js$ {
+        expires off;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Access-Control-Allow-Origin "*";
+        add_header Access-Control-Allow-Methods "GET, OPTIONS";
+        add_header Access-Control-Allow-Headers "Content-Type";
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *;" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/javascript
+        application/xml+rss
+        application/json;
+}
+```
+
+**Changes:**
+- Simplified and fixed conflicting location blocks
+- Added proper CORS headers for Module Federation
+- Added special handling for `remoteEntry.js`
+- Relaxed CSP for Module Federation requirements
+
 ---
-app.tsx
------
-import React, { useEffect } from "react";
-import { HeaderBar } from "./components/HeaderBar";
-import MyCases from "./components/MyCases";
-import CaseDetails from "./components/CaseDetails";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import "./styles/globals.css";
 
-// Webpack will inject this value during build
-declare let __webpack_public_path__: string;
+## 5. Update `src/index.tsx` (Create if doesn't exist)
 
-const BRAND_BLUE = "#267AAD";
+**Create/Update:**
+```typescript
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
 
-const App: React.FC = () => {
-  const navigate = useNavigate();
+// Error boundary for better debugging
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-  const handleBack = () => {
-    if (window.history.length > 1) navigate(-1);
-  };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
 
-  useEffect(() => {
-    const basePath = __webpack_public_path__;
-    console.log("Base path:", basePath);
-  }, []);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Application Error:', error, errorInfo);
+    console.error('Current URL:', window.location.href);
+    console.error('Current pathname:', window.location.pathname);
+  }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <HeaderBar />
-
-      <section style={{ background: "#eef2f7" }} className="w-full">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <button
-            onClick={handleBack}
-            className="inline-flex items-center gap-3"
-            aria-label="Go back"
-            style={{
-              color: BRAND_BLUE,
-              fontWeight: 700,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-            }}
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+          <h2>Application Error</h2>
+          <details>
+            <summary>Error Details</summary>
+            <p><strong>Error:</strong> {this.state.error?.message}</p>
+            <p><strong>Current URL:</strong> {window.location.href}</p>
+            <p><strong>Current pathname:</strong> {window.location.pathname}</p>
+            <pre style={{ background: '#f5f5f5', padding: '10px', overflow: 'auto' }}>
+              {this.state.error?.stack}
+            </pre>
+          </details>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ marginTop: '10px', padding: '5px 10px' }}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={BRAND_BLUE}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            <span style={{ textDecoration: "underline" }}>Back</span>
+            Reload Page
           </button>
         </div>
-      </section>
+      );
+    }
 
-      <main className="p-6 max-w-6xl mx-auto">
-        <Routes>
-          <Route path="/" element={<MyCases />} />
-          <Route path="case/:caseId" element={<CaseDetails />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </div>
-  );
+    return this.props.children;
+  }
+}
+
+const container = document.getElementById('root');
+if (!container) throw new Error('Failed to find the root element');
+
+const root = createRoot(container);
+
+root.render(
+  <React.StrictMode>
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  </React.StrictMode>
+);
+```
+
+**Changes:**
+- Added error boundary for better debugging
+- Ensured no double Router wrapping
+- Added detailed error logging
+
+---
+
+## 6. Optional: Create Environment Configuration
+
+**Create `src/config/environment.ts`:**
+```typescript
+export const getBasePath = (): string => {
+  // Check if we're in a Module Federation context
+  if (typeof window !== 'undefined' && (window as any).__webpack_public_path__) {
+    return '/status-tracker/';
+  }
+  
+  // Check environment variables
+  if (process.env.REACT_APP_BASE_PATH) {
+    return process.env.REACT_APP_BASE_PATH;
+  }
+  
+  // Default based on NODE_ENV
+  return process.env.NODE_ENV === 'production' ? '/status-tracker/' : '/status-tracker/';
 };
 
-export default App;
+export const config = {
+  basePath: getBasePath(),
+  apiUrl: process.env.REACT_APP_API_URL || '',
+  environment: process.env.NODE_ENV || 'development'
+};
+```
 
+---
 
-----
-dockerfile
------
-# Use Node.js 18 Alpine for building
-FROM node:18-alpine AS build
+## Implementation Steps
 
-# Set working directory
-WORKDIR /app
+1. **Stop your current application**
+2. **Make all the above file changes**
+3. **Clear build cache:** `rm -rf node_modules/.cache dist/`
+4. **Rebuild:** `npm run build` (or your build command)
+5. **Rebuild Docker image** (if using containers)
+6. **Deploy to ECS**
+7. **Test the application**
 
-# Copy package files
-COPY package*.json ./
+## Testing Checklist
 
-# Install dependencies
-RUN npm ci
+After implementation, verify:
 
-# Copy source code
-COPY . .
+- [ ] Application loads at `/status-tracker/`
+- [ ] Navigation between routes works
+- [ ] Browser back/forward buttons work
+- [ ] Module Federation remote loading works
+- [ ] No console errors related to routing
+- [ ] Direct URL access works (e.g., `/status-tracker/case/123`)
 
-# Build the application
-RUN npm run build
+## Expected Console Output
 
-# Use nginx to serve the built application
-FROM nginx:alpine
+After fixes, you should see:
+```
+App basename: /status-tracker
+Base path: /status-tracker/
+Current location: /
+Current href: https://yourdomain.com/status-tracker/
+```
 
-# Copy built files to nginx
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
-EXPOSE 8080
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
-
-
-
-
+These changes address the core React Router assertion error and Module Federation path resolution issues you're experiencing.
