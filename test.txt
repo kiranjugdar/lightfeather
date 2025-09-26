@@ -1,3 +1,256 @@
+
+666.ea0ce8c66dc082fa8705.chunk.js:1 App running with ENV = dev
+666.ea0ce8c66dc082fa8705.chunk.js:1 Fetching user
+666.ea0ce8c66dc082fa8705.chunk.js:1 Fetching user
+666.ea0ce8c66dc082fa8705.chunk.js:1 Raw response json: Object
+666.ea0ce8c66dc082fa8705.chunk.js:1 Raw response json: Object
+666.ea0ce8c66dc082fa8705.chunk.js:1 Checking if remote exists on window: status_tracker_ui undefined
+666.ea0ce8c66dc082fa8705.chunk.js:1 Fetching user
+666.ea0ce8c66dc082fa8705.chunk.js:1 Remote script loaded: /status-tracker/remoteEntry.js Object
+666.ea0ce8c66dc082fa8705.chunk.js:1 Initializing sharing for remote: status_tracker_ui
+666.ea0ce8c66dc082fa8705.chunk.js:1 Container after init: Object
+666.ea0ce8c66dc082fa8705.chunk.js:1 Raw response json: Object
+666.ea0ce8c66dc082fa8705.chunk.js:1 Checking if remote exists on window: status_tracker_ui Object
+666.ea0ce8c66dc082fa8705.chunk.js:1 Remote already loaded: status_tracker_ui
+666.ea0ce8c66dc082fa8705.chunk.js:1 Initializing sharing for remote: status_tracker_ui
+666.ea0ce8c66dc082fa8705.chunk.js:1 Container after init: Object
+648.cae62d7c3481075d343a.js:2 Uncaught Error
+    at d (648.cae62d7c3481075d343a.js:2:4122)
+    at 648.cae62d7c3481075d343a.js:2:55248
+    at yt (648.cae62d7c3481075d343a.js:2:55747)
+    at u (577.61c9e5945b32d1f60687.js:2:276)
+    at Tl (735.b4f5013cd57315b032bc.chunk.js:2:203007)
+    at Vi (735.b4f5013cd57315b032bc.chunk.js:2:229542)
+    at Gi (735.b4f5013cd57315b032bc.chunk.js:2:239913)
+    at Gc (735.b4f5013cd57315b032bc.chunk.js:2:277147)
+    at Kc (735.b4f5013cd57315b032bc.chunk.js:2:277076)
+    at qc (735.b4f5013cd57315b032bc.chunk.js:2:276918)
+-------------
+/*! For license information please see 648.cae62d7c3481075d343a.js.LICENSE.txt */
+"use strict";
+(self.webpackChunksecurity_clearance_tracker = self.webpackChunksecurity_clearance_tracker || []).push([[648], {
+    648: (e, t, r) => {
+        r.r(t),
+        r.d(t, {
+            AbortedDeferredError: () => Y,
+            Await: () => nr,
+            BrowserRouter: () => Nr,
+            Form: () => $r,
+            HashRouter: () => Br,
+            Link: () => Wr,
+            MemoryRouter: () => Gt,
+            NavLink: () => Kr,
+            Navigate: () => Qt,
+            NavigationType: () => n,
+            Outlet: () => Zt,
+            Route: () => er,
+            Router: () => tr,
+            RouterProvider: () => jr,
+            Routes: () => rr,
+            ScrollRestoration: () => Vr,
+            UNSAFE_DataRouterContext: () => at,
+            UNSAFE_DataRouterStateContext: () => ot,
+            UNSAFE_ErrorResponseImpl: () => re,
+            UNSAFE_FetchersContext: () => kr,
+            UNSAFE_LocationContext: () => lt,
+            UNSAFE_NavigationContext: () => st,
+            UNSAFE_RouteContext: () => ut,
+            UNSAFE_ViewTransitionContext: () => Lr,
+            UNSAFE_useRouteId: () => jt,
+            UNSAFE_useScrollRestoration: () => ln,
+            createBrowserRouter: () => xr,
+            createHashRouter: () => Dr,
+            createMemoryRouter: () => dr,
+            createPath: () => m,
+            createRoutesFromChildren: () => lr,
+            createRoutesFromElements: () => lr,
+            createSearchParams: () => yr,
+            defer: () => Q,
+            generatePath: () => j,
+            isRouteErrorResponse: () => ne,
+            json: () => q,
+            matchPath: () => O,
+            matchRoutes: () => S,
+            parsePath: () => v,
+            redirect: () => Z,
+            redirectDocument: () => ee,
+            renderMatches: () => ur,
+            replace: () => te,
+            resolvePath: () => B,
+            unstable_HistoryRouter: () => Ir,
+            unstable_usePrompt: () => cn,
+            useActionData: () => zt,
+            useAsyncError: () => Kt,
+            useAsyncValue: () => Wt,
+            useBeforeUnload: () => un,
+            useBlocker: () => Vt,
+            useFetcher: () => nn,
+            useFetchers: () => an,
+            useFormAction: () => rn,
+            useHref: () => dt,
+            useInRouterContext: () => ht,
+            useLinkClickHandler: () => Gr,
+            useLoaderData: () => Bt,
+            useLocation: () => ft,
+            useMatch: () => mt,
+            useMatches: () => Nt,
+            useNavigate: () => yt,
+            useNavigation: () => Ot,
+            useNavigationType: () => pt,
+            useOutlet: () => wt,
+            useOutletContext: () => bt,
+            useParams: () => St,
+            useResolvedPath: () => Et,
+            useRevalidator: () => Ft,
+            useRouteError: () => Ht,
+            useRouteLoaderData: () => It,
+            useRoutes: () => Rt,
+            useSearchParams: () => Qr,
+            useSubmit: () => tn,
+            useViewTransitionState: () => dn
+        });
+        var n, a = r(884), o = r(486);
+        function i() {
+            return i = Object.assign ? Object.assign.bind() : function(e) {
+                for (var t = 1; t < arguments.length; t++) {
+                    var r = arguments[t];
+                    for (var n in r)
+                        Object.prototype.hasOwnProperty.call(r, n) && (e[n] = r[n])
+                }
+                return e
+            }
+            ,
+            i.apply(this, arguments)
+        }
+        !function(e) {
+            e.Pop = "POP",
+            e.Push = "PUSH",
+            e.Replace = "REPLACE"
+        }(n || (n = {}));
+        const s = "popstate";
+        function l(e) {
+            void 0 === e && (e = {});
+            let t, {initialEntries: r=["/"], initialIndex: a, v5Compat: o=!1} = e;
+            t = r.map( (e, t) => d(e, "string" == typeof e ? null : e.state, 0 === t ? "default" : void 0));
+            let i = u(null == a ? t.length - 1 : a)
+              , s = n.Pop
+              , l = null;
+            function u(e) {
+                return Math.min(Math.max(e, 0), t.length - 1)
+            }
+            function c() {
+                return t[i]
+            }
+            function d(e, r, n) {
+                void 0 === r && (r = null);
+                let a = p(t ? c().pathname : "/", e, r, n);
+                return h("/" === a.pathname.charAt(0), "relative pathnames are not supported in memory history: " + JSON.stringify(e)),
+                a
+            }
+            function f(e) {
+                return "string" == typeof e ? e : m(e)
+            }
+            return {
+                get index() {
+                    return i
+                },
+                get action() {
+                    return s
+                },
+                get location() {
+                    return c()
+                },
+                createHref: f,
+                createURL: e => new URL(f(e),"http://localhost"),
+                encodeLocation(e) {
+                    let t = "string" == typeof e ? v(e) : e;
+                    return {
+                        pathname: t.pathname || "",
+                        search: t.search || "",
+                        hash: t.hash || ""
+                    }
+                },
+                push(e, r) {
+                    s = n.Push;
+                    let a = d(e, r);
+                    i += 1,
+                    t.splice(i, t.length, a),
+                    o && l && l({
+                        action: s,
+                        location: a,
+                        delta: 1
+                    })
+                },
+                replace(e, r) {
+                    s = n.Replace;
+                    let a = d(e, r);
+                    t[i] = a,
+                    o && l && l({
+                        action: s,
+                        location: a,
+                        delta: 0
+                    })
+                },
+                go(e) {
+                    s = n.Pop;
+                    let r = u(i + e)
+                      , a = t[r];
+                    i = r,
+                    l && l({
+                        action: s,
+                        location: a,
+                        delta: e
+                    })
+                },
+                listen: e => (l = e,
+                () => {
+                    l = null
+                }
+                )
+            }
+        }
+        function u(e) {
+            return void 0 === e && (e = {}),
+            y(function(e, t) {
+                let {pathname: r, search: n, hash: a} = e.location;
+                return p("", {
+                    pathname: r,
+                    search: n,
+                    hash: a
+                }, t.state && t.state.usr || null, t.state && t.state.key || "default")
+            }, function(e, t) {
+                return "string" == typeof t ? t : m(t)
+            }, null, e)
+        }
+        function c(e) {
+            return void 0 === e && (e = {}),
+            y(function(e, t) {
+                let {pathname: r="/", search: n="", hash: a=""} = v(e.location.hash.substr(1));
+                return r.startsWith("/") || r.startsWith(".") || (r = "/" + r),
+                p("", {
+                    pathname: r,
+                    search: n,
+                    hash: a
+                }, t.state && t.state.usr || null, t.state && t.state.key || "default")
+            }, function(e, t) {
+                let r = e.document.querySelector("base")
+                  , n = "";
+                if (r && r.getAttribute("href")) {
+                    let t = e.location.href
+                      , r = t.indexOf("#");
+                    n = -1 === r ? t : t.slice(0, r)
+                }
+                return n + "#" + ("string" == typeof t ? t : m(t))
+            }, function(e, t) {
+                h("/" === e.pathname.charAt(0), "relative pathnames are not supported in hash history.push(" + JSON.stringify(t) + ")")
+            }, e)
+        }
+        function d(e, t) {
+            if (!1 === e || null == e)
+                throw new Error(t)
+        }
+      
+
 --------------
 ngnix.conf
 --------------
@@ -307,5 +560,7 @@ EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
+
+
 
 
