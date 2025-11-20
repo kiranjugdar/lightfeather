@@ -1,551 +1,312 @@
-# Complete List of Changes to Fix React Router Issues
+package com.foreign.travel.controller;
 
-## 1. Update `public/index.html`
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
-**Current:**
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Clearance Tracker</title>
-    <meta name="description" content="Security Clearance Tracker Application">
-</head>
-<body>
-    <div id="root"></div>
-</body>
-</html>
-```
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-**Updated:**
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Clearance Tracker</title>
-    <meta name="description" content="Security Clearance Tracker Application">
-    <base href="/status-tracker/">
-</head>
-<body>
-    <div id="root"></div>
-</body>
-</html>
-```
+import com.foreign.travel.domain.ForeignTravelAudit;
+import com.foreign.travel.dto.common.PageResponse;
+import com.foreign.travel.dto.foreigntravel.AttachmentResponse;
+import com.foreign.travel.dto.foreigntravel.ForeignTravelRequest;
+import com.foreign.travel.dto.foreigntravel.ForeignTravelResponse;
+import com.foreign.travel.service.ForeignTravelService;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.util.*;
+import java.util.stream.Collectors;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-**Change:** Added `<base href="/status-tracker/">` tag
+@RestController
+public class ForeignTravelController {
 
----
+    private final ForeignTravelService service;
 
-## 2. Update `src/App.tsx`
-
-**Current:**
-```typescript
-import React, { useEffect } from "react";
-import { HeaderBar } from "./components/HeaderBar";
-import MyCases from "./components/MyCases";
-import CaseDetails from "./components/CaseDetails";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import "./styles/globals.css";
-
-declare let __webpack_public_path__: string;
-const BRAND_BLUE = "#267AAD";
-
-const App: React.FC = () => {
-  const navigate = useNavigate();
-  const handleBack = () => {
-    if (window.history.length > 1) navigate(-1);
-  };
-  useEffect(() => {
-    const basePath = __webpack_public_path__;
-    console.log("Base path:", basePath);
-  }, []);
-  
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <HeaderBar />
-      <section style={{ background: "#eef2f7" }} className="w-full">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <button onClick={handleBack} className="inline-flex items-center gap-3" aria-label="Go back" style={{ color: BRAND_BLUE, fontWeight: 700, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={BRAND_BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            <span style={{ textDecoration: "underline" }}>Back</span>
-          </button>
-        </div>
-      </section>
-      <main className="p-6 max-w-6xl mx-auto">
-        <Routes>
-          <Route path="/" element={<MyCases />} />
-          <Route path="case/:caseId" element={<CaseDetails />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </div>
-  );
-};
-
-export default App;
-```
-
-**Updated:**
-```typescript
-import React, { useEffect } from "react";
-import { HeaderBar } from "./components/HeaderBar";
-import MyCases from "./components/MyCases";
-import CaseDetails from "./components/CaseDetails";
-import { Routes, Route, Navigate, useNavigate, BrowserRouter } from "react-router-dom";
-import "./styles/globals.css";
-
-declare let __webpack_public_path__: string;
-const BRAND_BLUE = "#267AAD";
-
-// Internal App component without Router
-const AppContent: React.FC = () => {
-  const navigate = useNavigate();
-  
-  const handleBack = () => {
-    if (window.history.length > 1) navigate(-1);
-  };
-
-  useEffect(() => {
-    try {
-      const basePath = typeof __webpack_public_path__ !== 'undefined' ? __webpack_public_path__ : '/status-tracker/';
-      console.log("Base path:", basePath);
-      console.log("Current location:", window.location.pathname);
-      console.log("Current href:", window.location.href);
-    } catch (error) {
-      console.error("Error accessing webpack public path:", error);
-    }
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <HeaderBar />
-      <section style={{ background: "#eef2f7" }} className="w-full">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <button
-            onClick={handleBack}
-            className="inline-flex items-center gap-3"
-            aria-label="Go back"
-            style={{
-              color: BRAND_BLUE,
-              fontWeight: 700,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={BRAND_BLUE}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            <span style={{ textDecoration: "underline" }}>Back</span>
-          </button>
-        </div>
-      </section>
-      <main className="p-6 max-w-6xl mx-auto">
-        <Routes>
-          <Route path="/" element={<MyCases />} />
-          <Route path="/case/:caseId" element={<CaseDetails />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </div>
-  );
-};
-
-// Main App component with Router
-const App: React.FC = () => {
-  // Determine basename based on environment and webpack config
-  const getBasename = () => {
-    try {
-      // Check if we're in production and have a specific base path
-      if (process.env.NODE_ENV === 'production') {
-        return '/status-tracker';
-      }
-      
-      // For development, also use the same base path for consistency
-      return '/status-tracker';
-    } catch (error) {
-      console.error("Error determining basename:", error);
-      return '/status-tracker';
-    }
-  };
-
-  const basename = getBasename();
-  console.log("App basename:", basename);
-
-  return (
-    <BrowserRouter basename={basename}>
-      <AppContent />
-    </BrowserRouter>
-  );
-};
-
-export default App;
-```
-
-**Changes:**
-- Added `BrowserRouter` import
-- Split component into `AppContent` and `App`
-- Added `BrowserRouter` wrapper with `basename="/status-tracker"`
-- Enhanced error handling and logging
-- Fixed route path: `case/:caseId` → `/case/:caseId`
-
----
-
-## 3. Update `webpack.config.js`
-
-**Current publicPath:**
-```javascript
-publicPath: 'auto'
-```
-
-**Updated:**
-```javascript
-const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
-const { ModuleFederationPlugin } = require('webpack').container;
-
-module.exports = (env, argv) => {
-  const isProduction = argv.mode === 'production';
-  const basePath = '/status-tracker/';
-
-  return {
-    entry: './src/index.tsx',
-    output: {
-      path: path.resolve(__dirname, 'dist'),
-      filename: isProduction ? '[name].[contenthash].js' : '[name].js',
-      clean: true,
-      // Fix: Use explicit publicPath instead of 'auto'
-      publicPath: isProduction ? basePath : basePath
-    },
-    resolve: {
-      extensions: ['.tsx', '.ts', '.js', '.jsx'],
-      alias: {
-        '@': path.resolve(__dirname, 'src'),
-      },
-    },
-    module: {
-      rules: [
-        {
-          test: /\.tsx?$/,
-          use: 'ts-loader',
-          exclude: /node_modules/,
-        },
-        {
-          test: /\.css$/,
-          use: [
-            isProduction ? MiniCssExtractPlugin.loader : 'style-loader',
-            'css-loader',
-            {
-              loader: 'postcss-loader',
-              options: {
-                postcssOptions: {
-                  plugins: [require('tailwindcss'), require('autoprefixer')],
-                },
-              },
-            },
-          ],
-        },
-        {
-          test: /\.(png|jpe?g|gif|svg)$/i,
-          type: 'asset/resource',
-        },
-      ],
-    },
-    plugins: [
-      new ModuleFederationPlugin({
-        name: 'status_tracker_ui',
-        filename: 'remoteEntry.js',
-        exposes: {
-          './App': './src/App.tsx',
-        },
-        shared: {
-          react: { singleton: true, requiredVersion: false, eager: true },
-          'react-dom': { singleton: true, requiredVersion: false, eager: true },
-          "react-router-dom": { singleton: true, requiredVersion: false, eager: true },
-        },
-      }),
-      new HtmlWebpackPlugin({
-        template: './public/index.html',
-        title: 'Security Clearance Tracker',
-      }),
-      new CopyWebpackPlugin({
-        patterns: [
-          {
-            from: 'public',
-            to: '.',
-            globOptions: {
-              ignore: ['**/index.html'],
-            },
-          },
-        ],
-      }),
-      ...(isProduction
-        ? [
-            new MiniCssExtractPlugin({
-              filename: '[name].[contenthash].css',
-            }),
-          ]
-        : []),
-    ],
-    devServer: {
-      static: {
-        directory: path.join(__dirname, 'public'),
-      },
-      compress: true,
-      port: 3000,
-      hot: true,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-        'Access-Control-Allow-Headers':
-          'X-Requested-With, content-type, Authorization',
-      },
-      historyApiFallback: {
-        index: basePath,
-        disableDotRule: true,
-        rewrites: [
-          { from: /^\/status-tracker/, to: basePath + 'index.html' },
-        ],
-      },
-    },
-  };
-};
-```
-
-**Changes:**
-- Changed `publicPath: 'auto'` → `publicPath: basePath`
-- Added `eager: true` to shared dependencies
-- Updated `devServer.historyApiFallback` configuration
-- Removed conflicting `static.publicPath` and `devMiddleware.publicPath`
-
----
-
-## 4. Update `nginx.conf`
-
-**Replace entire current config with:**
-```nginx
-server {
-    listen 8080;
-    server_name localhost;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Handle legacy /security-tracker/ redirect first
-    location /security-tracker {
-        return 301 /status-tracker$request_uri;
+    public ForeignTravelController(ForeignTravelService service) {
+        this.service = service;
     }
 
-    # Handle /status-tracker/ and its sub-paths
-    location /status-tracker {
-        # Try to serve the file directly, then fallback to index.html for SPA routing
-        try_files $uri $uri/ /index.html;
+    @PostMapping("/travel")
+    public ResponseEntity<ForeignTravelResponse> create(
+            @Valid @RequestBody ForeignTravelRequest request,
+            @RequestParam(value = "certify", required = false, defaultValue = "false") boolean certify,
+            @RequestParam(value = "spGlobalId", required = false) String spGlobalId) {
+
+        ForeignTravelResponse response = service.saveInitial(request, certify, spGlobalId);
+
+        URI location = URI.create(String.format("/api/travel/%s/%s",
+                response.getRecordId(), response.getVersionId()));
+
+        return ResponseEntity.created(location).body(response);
     }
 
-    # Root redirect to status-tracker
-    location = / {
-        return 301 /status-tracker/;
+    @PutMapping("/travel/{recordId}")
+    public ResponseEntity<ForeignTravelResponse> updateLatest(
+            @PathVariable("recordId") UUID recordId,
+            @Valid @RequestBody ForeignTravelRequest request) {
+
+        ForeignTravelResponse response = service.update(recordId, null, request);
+        return ResponseEntity.ok(response);
     }
 
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        # Allow CORS for module federation
-        add_header Access-Control-Allow-Origin "*";
+    @PutMapping("/travel/{recordId}/{versionId}")
+    public ResponseEntity<ForeignTravelResponse> updateVersion(
+            @PathVariable("recordId") UUID recordId,
+            @PathVariable("versionId") Integer versionId,
+            @Valid @RequestBody ForeignTravelRequest request) {
+
+        ForeignTravelResponse response = service.update(recordId, versionId, request);
+        return ResponseEntity.ok(response);
     }
 
-    # Special handling for remoteEntry.js (Module Federation)
-    location ~* /remoteEntry\.js$ {
-        expires off;
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-        add_header Access-Control-Allow-Origin "*";
-        add_header Access-Control-Allow-Methods "GET, OPTIONS";
-        add_header Access-Control-Allow-Headers "Content-Type";
+    @GetMapping("/travel/{recordId}")
+    public ResponseEntity<ForeignTravelResponse> getLatest(@PathVariable("recordId") UUID recordId) {
+        return ResponseEntity.ok(service.findLatest(recordId));
     }
 
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *;" always;
+    @GetMapping("/travel/{recordId}/{versionId}")
+    public ResponseEntity<ForeignTravelResponse> getById(
+            @PathVariable("recordId") UUID recordId,
+            @PathVariable("versionId") Integer versionId) {
 
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private auth;
-    gzip_types
-        text/plain
-        text/css
-        text/xml
-        text/javascript
-        application/javascript
-        application/xml+rss
-        application/json;
-}
-```
-
-**Changes:**
-- Simplified and fixed conflicting location blocks
-- Added proper CORS headers for Module Federation
-- Added special handling for `remoteEntry.js`
-- Relaxed CSP for Module Federation requirements
-
----
-
-## 5. Update `src/index.tsx` (Create if doesn't exist)
-
-**Create/Update:**
-```typescript
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-
-// Error boundary for better debugging
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Application Error:', error, errorInfo);
-    console.error('Current URL:', window.location.href);
-    console.error('Current pathname:', window.location.pathname);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-          <h2>Application Error</h2>
-          <details>
-            <summary>Error Details</summary>
-            <p><strong>Error:</strong> {this.state.error?.message}</p>
-            <p><strong>Current URL:</strong> {window.location.href}</p>
-            <p><strong>Current pathname:</strong> {window.location.pathname}</p>
-            <pre style={{ background: '#f5f5f5', padding: '10px', overflow: 'auto' }}>
-              {this.state.error?.stack}
-            </pre>
-          </details>
-          <button 
-            onClick={() => window.location.reload()} 
-            style={{ marginTop: '10px', padding: '5px 10px' }}
-          >
-            Reload Page
-          </button>
-        </div>
-      );
+        return ResponseEntity.ok(service.findById(recordId, versionId));
     }
 
-    return this.props.children;
-  }
+    @GetMapping("/travel-list")
+    public ResponseEntity<PageResponse<ForeignTravelResponse>> findAll(
+            @RequestParam(value = "status", required = false) String status,
+            @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<ForeignTravelResponse> page = service.list(Optional.ofNullable(status), pageable);
+        return ResponseEntity.ok(PageResponse.from(page));
+    }
+
+    @DeleteMapping("/travel/{recordId}/{versionId}")
+    public ResponseEntity<Void> delete(@PathVariable("recordId") UUID recordId,
+                                       @PathVariable("versionId") Integer versionId) {
+        service.delete(recordId, versionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/travel/{recordId}/certify")
+    public ResponseEntity<ForeignTravelResponse> certify(
+            @PathVariable("recordId") UUID recordId,
+            @RequestParam(value = "version", required = false) Integer versionId) {
+
+        // If a specific version was requested, ensure it exists before certifying.
+        if (versionId != null) {
+            service.findById(recordId, versionId); // will throw if not found
+            // service currently certifies by recordId (appends a certified version).
+            // We proceed to certify the record (the service will create a new certified version).
+        }
+
+        ForeignTravelResponse response = service.certify(recordId);
+        return ResponseEntity.ok(response);
+    }
+
+
+
+    @PostMapping("/export-list")
+    public void exportSelectedForeignTravels(
+            @RequestBody List<UUID> recordIds,
+            HttpServletResponse response) throws IOException {
+
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=\"travels.csv\"");
+
+        List<ForeignTravelResponse> travelRecords = service.getExportListByRecordIds(recordIds);
+
+        CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
+                .setHeader("RecordId", "Version", "Countries", "From Date", "To Date", "Status", "Details", "Created Date", "Updated Date")
+                .build();
+
+        try (ServletOutputStream outputStream = response.getOutputStream();
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+             CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
+
+            for (ForeignTravelResponse record : travelRecords) {
+                String countries = record.getCountries() != null
+                        ? String.join(",", Arrays.stream(record.getCountries()).filter(Objects::nonNull).collect(Collectors.toList()))
+                        : "";
+
+                csvPrinter.printRecord(
+                        record.getRecordId(),
+                        record.getVersionId(),
+                        countries,
+                        record.getStartDate(),
+                        record.getEndDate(),
+                        record.getStatus(),
+                        record.getDetails() != null ? record.getDetails().toString() : "",
+                        record.getCreatedAt(),
+                        record.getUpdatedAt()
+                );
+            }
+            csvPrinter.flush();
+        }
+    }
 }
 
-const container = document.getElementById('root');
-if (!container) throw new Error('Failed to find the root element');
+-------------------------
 
-const root = createRoot(container);
+package com.foreign.travel.config;
 
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>
-);
-```
+import com.foreign.travel.security.JwtAuthenticationEntryPoint;
+import com.foreign.travel.security.JwtAuthenticationFilter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-**Changes:**
-- Added error boundary for better debugging
-- Ensured no double Router wrapping
-- Added detailed error logging
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
 
----
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final String contextPath;
+    private final boolean jwtEnabled;
+    private final boolean mockProfileActive;
 
-## 6. Optional: Create Environment Configuration
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+                          @Value("${server.servlet.context-path:/}") String contextPath,
+                          @Value("${security.jwt.enabled:true}") boolean jwtEnabled,
+                          Environment environment) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+        this.contextPath = normalizeContextPath(contextPath);
+        this.jwtEnabled = jwtEnabled;
+        this.mockProfileActive = Arrays.asList(environment.getActiveProfiles()).contains("mock");
+    }
 
-**Create `src/config/environment.ts`:**
-```typescript
-export const getBasePath = (): string => {
-  // Check if we're in a Module Federation context
-  if (typeof window !== 'undefined' && (window as any).__webpack_public_path__) {
-    return '/status-tracker/';
-  }
-  
-  // Check environment variables
-  if (process.env.REACT_APP_BASE_PATH) {
-    return process.env.REACT_APP_BASE_PATH;
-  }
-  
-  // Default based on NODE_ENV
-  return process.env.NODE_ENV === 'production' ? '/status-tracker/' : '/status-tracker/';
-};
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                                        + "img-src 'self' data:; font-src 'self'"))
+                        .frameOptions(frame -> frame.sameOrigin()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-export const config = {
-  basePath: getBasePath(),
-  apiUrl: process.env.REACT_APP_API_URL || '',
-  environment: process.env.NODE_ENV || 'development'
-};
-```
+        if (jwtEnabled && !mockProfileActive) {
+            http.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                    .authorizeHttpRequests(authz -> authz
+                            .requestMatchers(publicEndpoints()).permitAll()
+                            .anyRequest().authenticated())
+                    .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        } else {
+            http.authorizeHttpRequests(authz -> authz.anyRequest().permitAll());
+        }
+        return http.build();
+    }
 
----
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        List<String> allowedOriginPatterns = new ArrayList<>(List.of("http://localhost:3000", "http://localhost:3001"));
+        if (mockProfileActive) {
+            allowedOriginPatterns.add("*");
+        }
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
-## Implementation Steps
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
-1. **Stop your current application**
-2. **Make all the above file changes**
-3. **Clear build cache:** `rm -rf node_modules/.cache dist/`
-4. **Rebuild:** `npm run build` (or your build command)
-5. **Rebuild Docker image** (if using containers)
-6. **Deploy to ECS**
-7. **Test the application**
+    private String[] publicEndpoints() {
+        List<String> basePaths = new ArrayList<>(List.of(
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/swagger-resources/**",
+                "/api-docs/**",
+                "/v3/api-docs/**",
+                "/swagger-initializer.js",
+                "/webjars/**",
+                "/jwt-test/**",
+                "/actuator/health",
+                "/actuator/info",
+                "/health",
+                "/error"
+        ));
 
-## Testing Checklist
+        if (!contextPath.isEmpty()) {
+            basePaths.addAll(basePaths.stream()
+                    .map(path -> contextPath + (path.startsWith("/") ? path : "/" + path))
+                    .collect(Collectors.toSet()));
+        }
 
-After implementation, verify:
+        return basePaths.stream().distinct().toArray(String[]::new);
+    }
 
-- [ ] Application loads at `/status-tracker/`
-- [ ] Navigation between routes works
-- [ ] Browser back/forward buttons work
-- [ ] Module Federation remote loading works
-- [ ] No console errors related to routing
-- [ ] Direct URL access works (e.g., `/status-tracker/case/123`)
+    private String normalizeContextPath(String rawContextPath) {
+        if (rawContextPath == null || rawContextPath.isBlank() || "/".equals(rawContextPath.trim())) {
+            return "";
+        }
+        String trimmed = rawContextPath.trim();
+        return trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
+    }
+}
 
-## Expected Console Output
+----
 
-After fixes, you should see:
-```
-App basename: /status-tracker
-Base path: /status-tracker/
-Current location: /
-Current href: https://yourdomain.com/status-tracker/
-```
+# Local Development Profile Configuration
+server.port=9090
 
-These changes address the core React Router assertion error and Module Federation path resolution issues you're experiencing.
+# JWT Configuration for Local Development
+# Use public certificate for JWT validation
+security.jwt.certificate-path=ssl-local/localhost.crt
+
+-----
+
